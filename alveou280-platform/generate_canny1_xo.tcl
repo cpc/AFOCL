@@ -16,10 +16,10 @@ update_compile_order -fileset sources_1
 set_property  ip_repo_paths  {vitis_magnitude vitis_phase vitis_sobel3x3 vitis_nonmax} [current_project]
 update_ip_catalog
 
-create_bd_cell -type ip -vlnv xilinx.com:hls:sobel3x3_ip:1.0 sobel3x3_ip_0
-create_bd_cell -type ip -vlnv xilinx.com:hls:nonmax_ip:1.0 nonmax_ip_0
-create_bd_cell -type ip -vlnv xilinx.com:hls:phase_ip:1.0 phase_ip_0
-create_bd_cell -type ip -vlnv xilinx.com:hls:magnitude_ip:1.0 magnitude_ip_0
+create_bd_cell -type ip -vlnv xilinx.com:hls:sobel3x3_ip:2.0 sobel3x3_ip_0
+create_bd_cell -type ip -vlnv xilinx.com:hls:nonmax_ip:2.0 nonmax_ip_0
+create_bd_cell -type ip -vlnv xilinx.com:hls:phase_ip:2.0 phase_ip_0
+create_bd_cell -type ip -vlnv xilinx.com:hls:magnitude_ip:2.0 magnitude_ip_0
 
 create_bd_cell -type module -reference tta_core_toplevel tta_core_toplevel_0
 set_property -dict [list CONFIG.local_mem_addrw_g {12} CONFIG.axi_offset_low_g {1073741824}] [get_bd_cells tta_core_toplevel_0]

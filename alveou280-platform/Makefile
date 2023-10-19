@@ -12,7 +12,9 @@ IP_CACHE_DIR ?= ip_cache
 OPENASIP_INSTALL_DIR ?= ${HOME}/local
 
 firmwares = vec_add_32x32.img vec_add_16x64.img vec_mul_32x32.img\
-			vec_add_32x32_sim.img vec_add_16x64_sim.img vec_mul_32x32_sim.img
+			vec_add_32x32_sim.img vec_add_16x64_sim.img vec_mul_32x32_sim.img\
+			vec_canny1_sim.img vec_canny2_sim.img vec_canny3_sim.img
+
 
 rtl_vecadd: tta_vecadd.adf
 	[ ! -d $@ ] || rm -r $@
@@ -23,7 +25,8 @@ rtl_vecadd: tta_vecadd.adf
 		-f onchip -d onchip -g AlmaIFIntegrator -p $($@_tpef) $($@_adf)
 	generatebits -x $@ -e tta_core $($@_adf)
 
-sim_bitstreams: vec_add_32x32_sim.xclbin vec_add_16x64_sim.xclbin vec_mul_32x32_sim.xclbin
+sim_bitstreams: vec_add_32x32_sim.xclbin vec_add_16x64_sim.xclbin vec_mul_32x32_sim.xclbin\
+	vec_canny1_sim.xclbin vec_canny2_sim.xclbin vec_canny3_sim.xclbin
 
 vec_sobel3x3_sim.img: vec_sobel3x3.img
 	cp $< $@
@@ -66,6 +69,7 @@ vec_canny1.img: tta_vecadd.adf firmware_canny1.c
 
 vec_canny2_sim.img: vec_canny2.img
 	cp $< $@
+	cp $< vec_sobel3x3_sim.img
 
 vec_canny2.img: tta_vecadd.adf firmware_canny2.c
 	$(eval $@_adf := $<)
@@ -226,6 +230,7 @@ vec_canny2_sim.xclbin: vec_canny2_nonmax.xo vec_canny2_magnitude.xo vec_canny2_p
 	python3 set_xclbin_range.py embeddedMetadata_canny2_sim.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny2_sim.xml --input $@ --output tmp_canny2_sim.xclbin
 	mv tmp_canny2_sim.xclbin $@
+	cp $@ vec_sobel3x3_sim.xclbin
 
 .PRECIOUS: vec_canny2.xclbin
 vec_canny2.xclbin: vec_canny2_nonmax.xo vec_canny2_magnitude.xo vec_canny2_phase.xo vec_canny2_sobel3x3.xo
@@ -276,7 +281,7 @@ overlay_alveou280: vec_add_32x32.xclbin vec_add_16x64.xclbin firmware
 .PRECIOUS: vec_canny1.xclbin
 vec_canny1.xclbin: vec_canny1.xo
 	$(eval $@_xo := $<)
-	v++ -O3 --temp_dir ./_x.canny1 -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) --config $(word 2,$^) \
+	v++ -O3 --temp_dir ./_x.canny1 -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude/solution1/impl/ \
@@ -291,7 +296,7 @@ vec_canny1.xclbin: vec_canny1.xo
 
 vec_canny1_sim.xclbin: vec_canny1.xo
 	$(eval $@_xo := vec_canny1_sim.xo)
-	v++ -O3 --temp_dir ./_x.canny1_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) --config $(word 2,$^) \
+	v++ -O3 --temp_dir ./_x.canny1_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude/solution1/impl/ \
@@ -307,7 +312,7 @@ vec_canny1_sim.xclbin: vec_canny1.xo
 .PRECIOUS: vec_canny3.xclbin
 vec_canny3.xclbin: vec_canny3.xo
 	$(eval $@_xo := $<)
-	v++ -O3 --temp_dir ./_x.canny3 -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) --config $(word 2,$^) \
+	v++ -O3 --temp_dir ./_x.canny3 -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude/solution1/impl/ \
@@ -322,7 +327,7 @@ vec_canny3.xclbin: vec_canny3.xo
 
 vec_canny3_sim.xclbin: vec_canny3.xo
 	$(eval $@_xo := vec_canny3_sim.xo)
-	v++ -O3 --temp_dir ./_x.canny3_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) --config $(word 2,$^) \
+	v++ -O3 --temp_dir ./_x.canny3_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude/solution1/impl/ \
@@ -338,7 +343,7 @@ vec_canny3_sim.xclbin: vec_canny3.xo
 .PRECIOUS: vec_canny4.xclbin
 vec_canny4.xclbin: vec_canny4.xo
 	$(eval $@_xo := $<)
-	v++ -O3 --temp_dir ./_x.canny4 -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) --config $(word 2,$^) \
+	v++ -O3 --temp_dir ./_x.canny4 -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude_ctrl/solution1/impl/ \
@@ -353,7 +358,7 @@ vec_canny4.xclbin: vec_canny4.xo
 
 vec_canny4_sim.xclbin: vec_canny4.xo
 	$(eval $@_xo := vec_canny4_sim.xo)
-	v++ -O3 --temp_dir ./_x.canny4_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) --config $(word 2,$^) \
+	v++ -O3 --temp_dir ./_x.canny4_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude_ctrl/solution1/impl/ \

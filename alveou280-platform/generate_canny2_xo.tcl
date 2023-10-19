@@ -19,7 +19,7 @@ update_compile_order -fileset sources_1
 set_property  ip_repo_paths  vitis_${accel_ip} [current_project]
 update_ip_catalog
 
-create_bd_cell -type ip -vlnv xilinx.com:hls:${accel_ip}_ip:1.0 ${accel_ip}_ip_0
+create_bd_cell -type ip -vlnv xilinx.com:hls:${accel_ip}_ip:2.0 ${accel_ip}_ip_0
 
 create_bd_cell -type module -reference tta_core_toplevel tta_core_toplevel_0
 set_property -dict [list CONFIG.local_mem_addrw_g {12} CONFIG.axi_offset_low_g ${tta_offset}] [get_bd_cells tta_core_toplevel_0]
