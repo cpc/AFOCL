@@ -23,6 +23,7 @@ rtl_vecadd: tta_vecadd.adf
 		-f onchip -d onchip -g AlmaIFIntegrator -p $($@_tpef) $($@_adf)
 	generatebits -x $@ -e tta_core $($@_adf)
 
+sim_bitstreams: vec_add_32x32_sim.xclbin vec_add_16x64_sim.xclbin vec_mul_32x32_sim.xclbin
 
 vec_add_32x32.img: tta_vecadd.adf firmware_vecadd.c
 	$(eval $@_adf := $<)
@@ -63,7 +64,11 @@ vec_%.xo: vec_hls_%.zip generate_vec_512_xo.tcl rtl_vecadd
 .PRECIOUS: vec_%.xclbin
 vec_%.xclbin: vec_%.xo
 	$(eval $@_xo := $<)
-	v++ -O3 --temp_dir ./_x.$* -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) --config $(word 2,$^) --user_ip_repo_paths vitis_$*/solution1/impl/ --user_ip_repo_paths ip_repo_$* --kernel_frequency 225 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_$* --connectivity.sp vec_$*_1.m_axi:HBM[0]
+	v++ -O3 --temp_dir ./_x.$* -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) \
+		--user_ip_repo_paths vitis_$*/solution1/impl/ \
+		--user_ip_repo_paths ip_repo_$* --kernel_frequency 225 \
+		-o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_$* \
+		--connectivity.sp vec_$*_1.m_axi:HBM[0]
 	xclbinutil --dump-section EMBEDDED_METADATA:RAW:embeddedMetadata_$*.xml --input $@ --force
 	python3 set_xclbin_range.py embeddedMetadata_$*.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_$*.xml --input $@ --output tmp_$*.xclbin
@@ -83,7 +88,11 @@ overlay_alveou280: vec_add_32x32.xclbin vec_add_16x64.xclbin firmware
 
 vec_%_sim.xclbin: vec_%.xo
 	$(eval $@_xo := vec_$*_sim.xo)
-	v++ -O3 --temp_dir ./_x.$*_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) --config $(word 2,$^) --user_ip_repo_paths vitis_$*/solution1/impl/ --user_ip_repo_paths ip_repo_$* --kernel_frequency 225 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_$* --connectivity.sp vec_$*_sim_1.m_axi:HBM[0]
+	v++ -O3 --temp_dir ./_x.$*_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) \
+		--user_ip_repo_paths vitis_$*/solution1/impl/ \
+		--user_ip_repo_paths ip_repo_$* \
+		--kernel_frequency 225 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_$* \
+		--connectivity.sp vec_$*_sim_1.m_axi:HBM[0]
 	xclbinutil --dump-section EMBEDDED_METADATA:RAW:embeddedMetadata_$*_sim.xml --input $@ --force
 	python3 set_xclbin_range.py embeddedMetadata_$*_sim.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_$*_sim.xml --input $@ --output tmp_$*_sim.xclbin
