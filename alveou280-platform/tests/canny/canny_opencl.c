@@ -181,7 +181,7 @@ init(
         printf("%s", clErrorString(retval));
     }
     free(platformId);
-
+    printf("Found %d devices\n", ret_num_devices);
 
     context = clCreateContext(
             NULL, ret_num_devices, deviceIds, NULL, NULL, &retval);
@@ -952,15 +952,22 @@ int
 main(int argc, char **argv) {
     enum PROCESSING_MODE mode = DEFAULT;
     char input_image_path[256] = "canny_host/x_64x4.pgm";
+    int benchmarking_iterations = 1;
     if (argc > 1) {
         char *mode_c = argv[1];
         if (strlen(mode_c) == 2) {
             if (strncmp(mode_c, "-B", 2) == 0) {
                 mode = BIG_MODE;
-                strcpy(input_image_path, argv[2]);
+                benchmarking_iterations = atoi(argv[2]);
+                if (argc > 3) {
+                    strcpy(input_image_path, argv[3]);
+                }
             } else if (strncmp(mode_c, "-b", 2) == 0) {
                 mode = SMALL_MODE;
-                strcpy(input_image_path, argv[2]);
+                benchmarking_iterations = atoi(argv[2]);
+                if (argc > 3) {
+                    strcpy(input_image_path, argv[3]);
+                }
             } else if (strncmp(mode_c, "-v", 2) == 0) {
                 mode = VIDEO_MODE;
                 strcpy(input_image_path, argv[2]);
@@ -973,10 +980,6 @@ main(int argc, char **argv) {
         } else {
             strcpy(input_image_path, argv[1]);
         }
-    }
-    int benchmarking_iterations = 1;
-    if (argc > 2) {
-        benchmarking_iterations = atoi(argv[2]);
     }
 
     char *output_image_path = "";

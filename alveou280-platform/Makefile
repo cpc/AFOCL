@@ -70,6 +70,9 @@ vec_canny1.img: tta_vecadd.adf firmware_canny1.c
 vec_canny2_sim.img: vec_canny2.img
 	cp $< $@
 	cp $< vec_sobel3x3_sim.img
+	cp $< vec_phase_sim.img
+	cp $< vec_magnitude_sim.img
+	cp $< vec_nonmax_sim.img
 
 vec_canny2.img: tta_vecadd.adf firmware_canny2.c
 	$(eval $@_adf := $<)
