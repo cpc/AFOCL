@@ -46,6 +46,7 @@ idx(size_t x, size_t y, size_t width, size_t height, int xoff, int yoff) {
     return resy * width + resx;
 }
 
+int any_mismatch = 0;
 // ## You may add your own variables here ##
 
 cl_context context;
@@ -967,15 +968,26 @@ enum PROCESSING_MODE { DEFAULT, BIG_MODE, SMALL_MODE, VIDEO_MODE };
 int
 main(int argc, char **argv) {
     enum PROCESSING_MODE mode = DEFAULT;
+    char input_image_path[256] = "canny_host/x_64x4.pgm";
+    int benchmarking_iterations = 1;
     if (argc > 1) {
         char *mode_c = argv[1];
         if (strlen(mode_c) == 2) {
             if (strncmp(mode_c, "-B", 2) == 0) {
                 mode = BIG_MODE;
+                benchmarking_iterations = atoi(argv[2]);
+                if (argc > 3) {
+                    strcpy(input_image_path, argv[3]);
+                }
             } else if (strncmp(mode_c, "-b", 2) == 0) {
                 mode = SMALL_MODE;
+                benchmarking_iterations = atoi(argv[2]);
+                if (argc > 3) {
+                    strcpy(input_image_path, argv[3]);
+                }
             } else if (strncmp(mode_c, "-v", 2) == 0) {
                 mode = VIDEO_MODE;
+                strcpy(input_image_path, argv[2]);
             } else {
                 printf(
                         "Invalid usage! Please set either -b, -B, -v or "
@@ -983,22 +995,15 @@ main(int argc, char **argv) {
                 return -1;
             }
         } else {
-            printf("Invalid usage! Please set either -b, -B, -v nothing\n");
-            return -1;
+            strcpy(input_image_path, argv[1]);
         }
     }
-    int benchmarking_iterations = 1;
-    if (argc > 2) {
-        benchmarking_iterations = atoi(argv[2]);
-    }
 
-    char *input_image_path = "";
     char *output_image_path = "";
     uint16_t threshold_lower = 0;
     uint16_t threshold_upper = 0;
     switch (mode) {
         case BIG_MODE:
-            input_image_path = "canny_host/hameensilta_1024x4.pgm";
             output_image_path = "hameensilta_output.pgm";
             // Arbitrarily selected to produce a nice-looking image
             // DO NOT CHANGE THESE WHEN BENCHMARKING
@@ -1010,7 +1015,6 @@ main(int argc, char **argv) {
                     benchmarking_iterations, input_image_path);
             break;
         case SMALL_MODE:
-            input_image_path = "canny_host/x_64x4.pgm";
             output_image_path = "x_output.pgm";
             threshold_lower = 750;
             threshold_upper = 800;
@@ -1027,7 +1031,6 @@ main(int argc, char **argv) {
                 return -1;
             }
             benchmarking_iterations = 0;
-            input_image_path = "people.mp4";
             threshold_lower = 120;
             threshold_upper = 300;
             printf(
@@ -1036,8 +1039,6 @@ main(int argc, char **argv) {
             break;
         case DEFAULT:
         default:
-            //input_image_path = "canny_host/incr1216x3.pgm";
-            input_image_path = "canny_host/incr64x4.pgm";
             output_image_path = "x_output.pgm";
             // Carefully selected to produce a discontinuous edge without edge
             // tracing
@@ -1157,11 +1158,12 @@ main(int argc, char **argv) {
         write_pgm(output_image_path, output_image, width, height);
         printf("Wrote output to %s\n", output_image_path);
         if (all_the_runs_were_succesful) {
-            printf("Error checks passed!\n");
+            printf("Pixel error checks passed!\n");
         } else {
             printf("There were failing runs\n");
+            any_mismatch = -1;
         }
     }
     destroy();
-    return 0;
+    return any_mismatch;
 }

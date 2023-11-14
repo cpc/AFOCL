@@ -19,18 +19,17 @@ void phase_ctrl_ip(hls::stream<t_Vec_i> &in0,
 #pragma hls interface ap_ctrl_hs port=return
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x += VEC_WIDTH_O) {
+#pragma HLS pipeline II=1 style=flp
             packet_type_t_Vec_o dataPhase;
             packet_type_t_Vec_i dataX1 = in0.read().data;
             packet_type_t_Vec_i dataY1 = in1.read().data;
             for (int i = 0; i < VEC_WIDTH_I; i++) {
-                // range = [-pi, pi]
-/*                ap_fixed<32, 3> atan2out;
-                ap_fixed<32, 16> atan2iny = dataY1[i];
-                ap_fixed<32, 16> atan2inx = dataX1[i];
+#pragma HLS unroll
+                ap_fixed<22, 3> atan2out;
+                ap_fixed<22, 16> atan2iny = dataY1[i];
+                ap_fixed<22, 16> atan2inx = dataX1[i];
                 atan2out = hls::atan2(atan2iny, atan2inx);
                 float angle = atan2out;
-*/
-                float angle = hls::atan2((double)dataY1[i], (double)dataX1[i]);
                 // Shift range -127.5:127.5
                 angle *= (float)(127.5 / PI);
                 // Shift range 0.5:255.5
@@ -41,13 +40,13 @@ void phase_ctrl_ip(hls::stream<t_Vec_i> &in0,
             packet_type_t_Vec_i dataX2 = in0.read().data;
             packet_type_t_Vec_i dataY2 = in1.read().data;
             for (int i = 0; i < VEC_WIDTH_I; i++) {
+#pragma HLS unroll
                 // range = [-pi, pi]
-                /*ap_fixed<32, 3> atan2out;
-                ap_fixed<32, 16> atan2iny = dataY1[i];
-                ap_fixed<32, 16> atan2inx = dataX1[i];
+                ap_fixed<22, 3> atan2out;
+                ap_fixed<22, 16> atan2iny = dataY2[i];
+                ap_fixed<22, 16> atan2inx = dataX2[i];
                 atan2out = hls::atan2(atan2iny, atan2inx);
-                float angle = atan2out;*/
-                float angle = hls::atan2((double)dataY2[i], (double)dataX2[i]);
+                float angle = atan2out;
                 // Shift range -127.5:127.5
                 angle *= (float)(127.5 / PI);
                 // Shift range 0:255

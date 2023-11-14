@@ -18,10 +18,12 @@ void magnitude_ctrl_ip(hls::stream<packet_i> &in0,
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x += VEC_WIDTH) {
+#pragma HLS pipeline II=1 style=flp
             t_Vec_o dataMagnitude;
             t_Vec_i dataX1 = in0.read().data;
             t_Vec_i dataY1 = in1.read().data;
             for (int i = 0; i < VEC_WIDTH; i++) {
+#pragma HLS unroll
                 unsigned short val = hls::abs(dataX1[i]) + hls::abs(dataY1[i]);
                 dataMagnitude[i] = val;
             }

@@ -25,6 +25,9 @@ void sobel3x3_ctrl_ip (hls::stream<packet_i > &in0,
     uint8_t line1[LINE_BUF_SIZE];
     uint8_t line2[LINE_BUF_SIZE];
     uint8_t line3[LINE_BUF_SIZE];
+#pragma HLS array_partition variable=line1 type=cyclic factor=64
+#pragma HLS array_partition variable=line2 type=cyclic factor=64
+#pragma HLS array_partition variable=line3 type=cyclic factor=64
     for (int y = 0; y < height; y++) {
         if ( y == 0) {
             for (int i = 0; i < width_in_vectors; i++) {
