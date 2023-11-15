@@ -215,7 +215,6 @@ main ()
     __buffer__ volatile uint32_t* PHASE = (__buffer__ volatile uint32_t*)(phase_address);
     __buffer__ volatile uint32_t* MAGNITUDE = (__buffer__ volatile uint32_t*)(magnitude_address);
     __buffer__ volatile uint32_t* NONMAX = (__buffer__ volatile uint32_t*)(nonmax_address);
-    int need_to_reset = 0;
     int stream_in_running = 0;
     int stream_out_running = 0;
     int sobel_running = 0;
@@ -230,15 +229,11 @@ main ()
     __buffer__ volatile uint32_t * nonmax_completion_signal = NULL;
     int use_bcast_1 = 1;
     queue_info->base_address_high = 42;
-    //queue_info->reserved2 = 0;
     while (1)
     {
         if (stream_in_running == 1) {
-            uint32_t status0 = DMA_STREAM_IN[0] & 0x2;
-            queue_info->base_address_high = status0;
-            uint32_t status = DMA_STREAM_IN[1] & 0x1;
-            if (status0 != 0) {
-                need_to_reset = 1;
+            uint32_t status = DMA_STREAM_IN[0] & (1 << 29);
+            if (status != 0) {
                 stream_in_running = 0;
                 *stream_in_completion_signal = 1;
             }
@@ -246,7 +241,6 @@ main ()
         if (stream_out_running == 1) {
             uint32_t status = DMA_STREAM_OUT[0] & (1 << 29);
             if (status != 0) {
-                need_to_reset = 1;
                 stream_out_running = 0;
                 *stream_out_completion_signal = 1;
             }
@@ -278,15 +272,6 @@ main ()
                 nonmax_running = 0;
                 *nonmax_completion_signal = 1;
             }
-        }
-        if (need_to_reset
-                && (stream_in_running == 0)
-                && (stream_out_running == 0)) {
-            // Soft reset the DMA engines
-            DMA_STREAM_IN[0] = 0x4;
-            // Wait while reset in progress
-            while ((DMA_STREAM_IN[0] & 0x4) == 1);
-            need_to_reset = 0;
         }
 
         // Compute packet location
@@ -369,15 +354,12 @@ main ()
                         if (stream_in_running) {
                             continue;
                         }
-                        DMA_STREAM_IN[0] = 0x0001;
-                        uint32_t status = 1;
-                        while ( status != 0 ) {
-                            status = DMA_STREAM_IN[1] & 0x1;
-                        }
-                        DMA_STREAM_IN[dma_ptr_offset] = arg0;
+                        DMA_STREAM_IN[0x8/4] = arg0;
                         uint32_t pixel_count = dim_x * dim_y;
-                        DMA_STREAM_IN[dma_len_offset] = pixel_count;
-                        
+                        DMA_STREAM_IN[0x18/4] = pixel_count;
+                        //DMA_STREAM_OUT[0] = (1 << 31);
+                        DMA_STREAM_IN[0] = ((1 << 31) | (1 << 28));
+
                         //IC_IN[ic_offset + arg1] = 9;
                         TDEST[14] = arg1;
 
@@ -390,12 +372,6 @@ main ()
                         if (stream_out_running) {
                             continue;
                         }
-
-                        /*DMA_STREAM_OUT[0] = 0x0001;
-                        uint32_t status = 1;
-                        while ( status != 0 ) {
-                            status = DMA_STREAM_OUT[1] & 0x1;
-                        }*/
                         DMA_STREAM_OUT[0x10/4] = arg1;
                         uint32_t pixel_count = dim_x * dim_y;
                         DMA_STREAM_OUT[0x18/4] = pixel_count;
