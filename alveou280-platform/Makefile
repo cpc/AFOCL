@@ -245,7 +245,7 @@ vec_canny2.xclbin: vec_canny2_nonmax.xo vec_canny2_magnitude.xo vec_canny2_phase
 		--user_ip_repo_paths vitis_magnitude/solution1/impl/ \
 		--user_ip_repo_paths vitis_nonmax/solution1/impl/ \
 		--user_ip_repo_paths ip_repo_canny2 \
-		--kernel_frequency 200 -o $@ \
+		--kernel_frequency 300 -o $@ \
 		--remote_ip_cache ${IP_CACHE_DIR}_canny2 \
 		--connectivity.sp vec_sobel3x3_1.m_axi:HBM[0] \
 		--connectivity.sp vec_phase_1.m_axi:HBM[0] \
@@ -292,7 +292,7 @@ vec_canny1.xclbin: vec_canny1.xo
 		--user_ip_repo_paths vitis_magnitude/solution1/impl/ \
 		--user_ip_repo_paths vitis_nonmax/solution1/impl/ \
 		--user_ip_repo_paths ip_repo_canny1 \
-		--kernel_frequency 180 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny1 --connectivity.sp vec_canny1_1.m_axi:HBM[0]
+		--kernel_frequency 160 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny1 --connectivity.sp vec_canny1_1.m_axi:HBM[0]
 	xclbinutil --dump-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny1.xml --input $@ --force
 	python3 set_xclbin_range.py embeddedMetadata_canny1.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny1.xml --input $@ --output tmp_canny1.xclbin
@@ -323,7 +323,7 @@ vec_canny3.xclbin: vec_canny3.xo
 		--user_ip_repo_paths vitis_magnitude/solution1/impl/ \
 		--user_ip_repo_paths vitis_nonmax/solution1/impl/ \
 		--user_ip_repo_paths ip_repo_canny3 \
-		--kernel_frequency 400 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny3 --connectivity.sp vec_canny3_1.m_axi:HBM[0]
+		--kernel_frequency 350 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny3 --connectivity.sp vec_canny3_1.m_axi:HBM[0]
 	xclbinutil --dump-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny3.xml --input $@ --force
 	python3 set_xclbin_range.py embeddedMetadata_canny3.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny3.xml --input $@ --output tmp_canny3.xclbin
@@ -354,7 +354,7 @@ vec_canny4.xclbin: vec_canny4.xo
 		--user_ip_repo_paths vitis_magnitude_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_nonmax_ctrl/solution1/impl/ \
 		--user_ip_repo_paths ip_repo_canny4 \
-		--kernel_frequency 200 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny4 --connectivity.sp vec_canny4_1.m_axi:HBM[0]
+		--kernel_frequency 350 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny4 --connectivity.sp vec_canny4_1.m_axi:HBM[0]
 	xclbinutil --dump-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny4.xml --input $@ --force
 	python3 set_xclbin_range.py embeddedMetadata_canny4.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny4.xml --input $@ --output tmp_canny4.xclbin
