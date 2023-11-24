@@ -6,6 +6,7 @@ VERSION 23.0 - Created
 */
 
 #include <CL/cl.h>
+#include <CL/cl_ext_pocl.h>
 #include <assert.h>
 #include <math.h>
 #include <stdint.h>
@@ -72,16 +73,17 @@ int suppr_kernel_device_idx = 0;
 int canny_kernel_enabled = 0;
 int canny_kernel_device_idx = 0;
 cl_mem input_buffer;
-cl_mem input_pipe;
-cl_mem sobel_x_pipe;
-cl_mem sobel_y_pipe;
-cl_mem bcast_x_0_pipe;
-cl_mem bcast_x_1_pipe;
-cl_mem bcast_y_0_pipe;
-cl_mem bcast_y_1_pipe;
-cl_mem phase_pipe;
-cl_mem magnitude_pipe;
-cl_mem suppressed_pipe;
+cl_mem pipes[10];
+/*cl_mem input_pipe;
+cl_mem pipes[1];
+cl_mem pipes[2];
+cl_mem pipes[3];
+cl_mem pipes[4];
+cl_mem pipes[5];
+cl_mem pipes[6];
+cl_mem pipes[7];
+cl_mem pipes[8];
+cl_mem pipes[9];*/
 cl_mem suppressed_buffer;
 
 // ## You may add your own initialization routines here ##
@@ -336,45 +338,45 @@ init(
     if (retval != CL_SUCCESS) {
         printf("Input buffer creation error: %s\n", clErrorString(retval));
     }
-    input_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[0] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("Input pipe creation error: %s\n", clErrorString(retval));
     }
 
-    sobel_x_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[1] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("Sobel x pipe creation error: %s\n", clErrorString(retval));
     }
-    sobel_y_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[2] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("Sobel y pipe creation error: %s\n", clErrorString(retval));
     }
-    bcast_x_0_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[3] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("bcast x 0 pipe creation error: %s\n", clErrorString(retval));
     }
-    bcast_x_1_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[4] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("bcast x 1 pipe creation error: %s\n", clErrorString(retval));
     }
-    bcast_y_0_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[5] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("bcast y 0 pipe creation error: %s\n", clErrorString(retval));
     }
-    bcast_y_1_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[6] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("bcast y 1 pipe creation error: %s\n", clErrorString(retval));
     }
-    phase_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[7] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf("Phase pipe creation error: %s\n", clErrorString(retval));
     }
-    magnitude_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[8] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf(
             "Magnitude pipe creation error: %s\n", clErrorString(retval));
     }
-    suppressed_pipe = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    pipes[9] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
     if (retval != CL_SUCCESS) {
         printf(
             "Suppressed pipe creation error: %s\n", clErrorString(retval));
@@ -395,7 +397,7 @@ init(
     if (retval != CL_SUCCESS) {
         printf("Stream in argument setting error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(stream_in_kernel, 1, sizeof(cl_mem), &input_pipe);
+    retval = clSetKernelArg(stream_in_kernel, 1, sizeof(cl_mem), &pipes[0]);
     if (retval != CL_SUCCESS) {
         printf("Stream in argument setting error: %s\n", clErrorString(retval));
     }
@@ -403,7 +405,7 @@ init(
     if (retval != CL_SUCCESS) {
         printf("Kernel creation error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(stream_out_kernel, 0, sizeof(cl_mem), &suppressed_pipe);
+    retval = clSetKernelArg(stream_out_kernel, 0, sizeof(cl_mem), &pipes[9]);
     if (retval != CL_SUCCESS) {
         printf("Stream out argument setting error: %s\n", clErrorString(retval));
     }
@@ -415,15 +417,15 @@ init(
     if (retval != CL_SUCCESS) {
         printf("Kernel creation error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(bcast_x_kernel, 0, sizeof(cl_mem), &sobel_x_pipe);
+    retval = clSetKernelArg(bcast_x_kernel, 0, sizeof(cl_mem), &pipes[1]);
     if (retval != CL_SUCCESS) {
         printf("bcast argument setting error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(bcast_x_kernel, 1, sizeof(cl_mem), &bcast_x_0_pipe);
+    retval = clSetKernelArg(bcast_x_kernel, 1, sizeof(cl_mem), &pipes[3]);
     if (retval != CL_SUCCESS) {
         printf("bcast argument setting error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(bcast_x_kernel, 2, sizeof(cl_mem), &bcast_x_1_pipe);
+    retval = clSetKernelArg(bcast_x_kernel, 2, sizeof(cl_mem), &pipes[4]);
     if (retval != CL_SUCCESS) {
         printf("bcast argument setting error: %s\n", clErrorString(retval));
     }
@@ -431,15 +433,15 @@ init(
     if (retval != CL_SUCCESS) {
         printf("Kernel creation error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(bcast_y_kernel, 0, sizeof(cl_mem), &sobel_y_pipe);
+    retval = clSetKernelArg(bcast_y_kernel, 0, sizeof(cl_mem), &pipes[2]);
     if (retval != CL_SUCCESS) {
         printf("bcast argument setting error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(bcast_y_kernel, 1, sizeof(cl_mem), &bcast_y_0_pipe);
+    retval = clSetKernelArg(bcast_y_kernel, 1, sizeof(cl_mem), &pipes[5]);
     if (retval != CL_SUCCESS) {
         printf("bcast argument setting error: %s\n", clErrorString(retval));
     }
-    retval = clSetKernelArg(bcast_y_kernel, 2, sizeof(cl_mem), &bcast_y_1_pipe);
+    retval = clSetKernelArg(bcast_y_kernel, 2, sizeof(cl_mem), &pipes[6]);
     if (retval != CL_SUCCESS) {
         printf("bcast argument setting error: %s\n", clErrorString(retval));
     }
@@ -450,15 +452,15 @@ init(
             printf("Kernel creation error: %s\n", clErrorString(retval));
         }
         // Set buffers to kernel arguments
-        retval = clSetKernelArg(sobel_kernel, 0, sizeof(cl_mem), &input_pipe);
+        retval = clSetKernelArg(sobel_kernel, 0, sizeof(cl_mem), &pipes[0]);
         if (retval != CL_SUCCESS) {
             printf("Sobel argument setting error: %s\n", clErrorString(retval));
         }
-        retval = clSetKernelArg(sobel_kernel, 1, sizeof(cl_mem), &sobel_x_pipe);
+        retval = clSetKernelArg(sobel_kernel, 1, sizeof(cl_mem), &pipes[1]);
         if (retval != CL_SUCCESS) {
             printf("Sobel argument setting error: %s\n", clErrorString(retval));
         }
-        retval = clSetKernelArg(sobel_kernel, 2, sizeof(cl_mem), &sobel_y_pipe);
+        retval = clSetKernelArg(sobel_kernel, 2, sizeof(cl_mem), &pipes[2]);
         if (retval != CL_SUCCESS) {
             printf("Sobel argument setting error: %s\n", clErrorString(retval));
         }
@@ -469,19 +471,19 @@ init(
             printf("Kernel creation error: %s\n", clErrorString(retval));
         }
         retval =
-            clSetKernelArg(phase_kernel, 0, sizeof(cl_mem), &bcast_x_0_pipe);
+            clSetKernelArg(phase_kernel, 0, sizeof(cl_mem), &pipes[3]);
         if (retval != CL_SUCCESS) {
             printf(
                     "Phase argument setting error: %s\n", clErrorString(retval));
         }
         retval =
-            clSetKernelArg(phase_kernel, 1, sizeof(cl_mem), &bcast_y_0_pipe);
+            clSetKernelArg(phase_kernel, 1, sizeof(cl_mem), &pipes[5]);
         if (retval != CL_SUCCESS) {
             printf(
                     "Phase argument setting error: %s\n", clErrorString(retval));
         }
         retval =
-            clSetKernelArg(phase_kernel, 2, sizeof(cl_mem), &phase_pipe);
+            clSetKernelArg(phase_kernel, 2, sizeof(cl_mem), &pipes[7]);
         if (retval != CL_SUCCESS) {
             printf(
                     "Phase argument setting error: %s\n", clErrorString(retval));
@@ -493,17 +495,17 @@ init(
             printf("Kernel creation error: %s\n", clErrorString(retval));
         }
         retval =
-            clSetKernelArg(magnitude_kernel, 0, sizeof(cl_mem), &bcast_x_1_pipe);
+            clSetKernelArg(magnitude_kernel, 0, sizeof(cl_mem), &pipes[4]);
         if (retval != CL_SUCCESS) {
             printf("Mag argument setting error: %s\n", clErrorString(retval));
         }
         retval =
-            clSetKernelArg(magnitude_kernel, 1, sizeof(cl_mem), &bcast_y_1_pipe);
+            clSetKernelArg(magnitude_kernel, 1, sizeof(cl_mem), &pipes[6]);
         if (retval != CL_SUCCESS) {
             printf("Mag argument setting error: %s\n", clErrorString(retval));
         }
         retval =
-            clSetKernelArg(magnitude_kernel, 2, sizeof(cl_mem), &magnitude_pipe);
+            clSetKernelArg(magnitude_kernel, 2, sizeof(cl_mem), &pipes[8]);
         if (retval != CL_SUCCESS) {
             printf("Mag argument setting error: %s\n", clErrorString(retval));
         }
@@ -514,21 +516,21 @@ init(
             printf("Kernel creation error: %s\n", clErrorString(retval));
         }
         retval = clSetKernelArg(
-                nonmax_suppr_kernel, 0, sizeof(cl_mem), &magnitude_pipe);
+                nonmax_suppr_kernel, 0, sizeof(cl_mem), &pipes[8]);
         if (retval != CL_SUCCESS) {
             printf(
                     "NonMaxSuppresion argument setting error: %s\n",
                     clErrorString(retval));
         }
         retval =
-            clSetKernelArg(nonmax_suppr_kernel, 1, sizeof(cl_mem), &phase_pipe);
+            clSetKernelArg(nonmax_suppr_kernel, 1, sizeof(cl_mem), &pipes[7]);
         if (retval != CL_SUCCESS) {
             printf(
                     "NonMaxSuppresion argument setting error: %s\n",
                     clErrorString(retval));
         }
         retval = clSetKernelArg(
-                nonmax_suppr_kernel, 2, sizeof(cl_mem), &suppressed_pipe);
+                nonmax_suppr_kernel, 2, sizeof(cl_mem), &pipes[9]);
         if (retval != CL_SUCCESS) {
             printf(
                     "NonMaxSuppresion argument setting error: %s\n",
@@ -555,14 +557,14 @@ init(
             printf("Kernel creation error: %s\n", clErrorString(retval));
         }
         retval = clSetKernelArg(
-                canny_kernel, 0, sizeof(cl_mem), &input_pipe);
+                canny_kernel, 0, sizeof(cl_mem), &pipes[0]);
         if (retval != CL_SUCCESS) {
             printf(
                     "Canny argument setting error: %s\n",
                     clErrorString(retval));
         }
         retval =
-            clSetKernelArg(canny_kernel, 1, sizeof(cl_mem), &suppressed_pipe);
+            clSetKernelArg(canny_kernel, 1, sizeof(cl_mem), &pipes[9]);
         if (retval != CL_SUCCESS) {
             printf(
                     "Canny argument setting error: %s\n",
@@ -593,12 +595,12 @@ destroy() {
     // Wait OpenCL to finish and then release everything
     // No error checking program is dying anyways
 /*    clFinish(commandQueue[0]);
-    clReleaseMemObject(input_pipe);
-    clReleaseMemObject(sobel_x_pipe);
-    clReleaseMemObject(sobel_y_pipe);
-    clReleaseMemObject(phase_pipe);
-    clReleaseMemObject(magnitude_pipe);
-    clReleaseMemObject(suppressed_pipe);
+    clReleaseMemObject(pipes[0]);
+    clReleaseMemObject(pipes[1]);
+    clReleaseMemObject(pipes[2]);
+    clReleaseMemObject(pipes[7]);
+    clReleaseMemObject(pipes[8]);
+    clReleaseMemObject(pipes[9]);
     if (sobel_kernel_enabled)
         clReleaseKernel(sobel_kernel);
     if (phase_kernel_enabled)
@@ -894,10 +896,10 @@ cannyEdgeDetection(
                 runtimes[2] = getStartEndTime(e4);
             } else {
 /*                clEnqueueReadBuffer(
-                        commandQueue[phase_kernel_device_idx], phase_pipe, CL_FALSE, 0, width * height, phase,
+                        commandQueue[phase_kernel_device_idx], pipes[7], CL_FALSE, 0, width * height, phase,
                         0, NULL, NULL);
                 clEnqueueReadBuffer(
-                        commandQueue[magnitude_kernel_device_idx], magnitude_pipe, CL_TRUE, 0, width * height * 2, magnitude,
+                        commandQueue[magnitude_kernel_device_idx], pipes[8], CL_TRUE, 0, width * height * 2, magnitude,
                         0, NULL, &eb3);
                 uint64_t phase_mag_end = gettimemono_ns();
                 nonMaxSuppression(
@@ -908,10 +910,10 @@ cannyEdgeDetection(
   */          }
         } else {
     /*        clEnqueueReadBuffer(
-                    commandQueue[sobel_kernel_device_idx], sobel_x_pipe, CL_FALSE, 0, width * height * 2, sobel_x,
+                    commandQueue[sobel_kernel_device_idx], pipes[1], CL_FALSE, 0, width * height * 2, sobel_x,
                     0, NULL, NULL);
             clEnqueueReadBuffer(
-                    commandQueue[sobel_kernel_device_idx], sobel_y_pipe, CL_TRUE, 0, width * height * 2, sobel_y,
+                    commandQueue[sobel_kernel_device_idx], pipes[2], CL_TRUE, 0, width * height * 2, sobel_y,
                     0, NULL, &eb3);
             uint64_t sobel_end = gettimemono_ns();
             phaseAndMagnitude(sobel_x, sobel_y, width, height, phase, magnitude);
@@ -949,6 +951,39 @@ cannyEdgeDetection(
     runtimes[1] /= 1000000.0;
     runtimes[2] /= 1000000.0;
     runtimes[3] = (tracing_time_end - tracing_time_start) / 1000000.0;
+
+    uint64_t profiling_counter_completed[10];
+    uint64_t profiling_counter_consumer[10];
+    uint64_t profiling_counter_producer[10];
+
+    for (int i = 0; i < 10; i++) {
+        clGetPipeInfo(pipes[i], CL_PIPE_PROFILING_TRANSFER_COUNT,
+                8, &profiling_counter_completed[i], NULL);
+        clGetPipeInfo(pipes[i], CL_PIPE_PROFILING_CONSUMER_STALL_COUNT,
+                8, &profiling_counter_consumer[i], NULL);
+        clGetPipeInfo(pipes[i], CL_PIPE_PROFILING_PRODUCER_STALL_COUNT,
+                8, &profiling_counter_producer[i], NULL);
+    }
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu MM2S to Sobel3x3\n",
+            profiling_counter_completed[0], profiling_counter_consumer[0], profiling_counter_producer[0]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Sobel3x3 to Broadcast_X\n",
+            profiling_counter_completed[1], profiling_counter_consumer[1], profiling_counter_producer[1]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Sobel3x3 to Broadcast_Y\n",
+            profiling_counter_completed[2], profiling_counter_consumer[2], profiling_counter_producer[2]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_X to Phase\n",
+            profiling_counter_completed[3], profiling_counter_consumer[3], profiling_counter_producer[3]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_X to Magnitude\n",
+            profiling_counter_completed[4], profiling_counter_consumer[4], profiling_counter_producer[4]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_Y to Phase\n",
+            profiling_counter_completed[5], profiling_counter_consumer[5], profiling_counter_producer[5]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_Y to Magnitude\n",
+            profiling_counter_completed[6], profiling_counter_consumer[6], profiling_counter_producer[6]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Phase to Nonmax\n",
+            profiling_counter_completed[7], profiling_counter_consumer[7], profiling_counter_producer[7]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Magnitude to Nonmax\n",
+            profiling_counter_completed[8], profiling_counter_consumer[8], profiling_counter_producer[8]);
+    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Nonmax to S2MM\n",
+            profiling_counter_completed[9], profiling_counter_consumer[9], profiling_counter_producer[9]);
 
     /*    uint64_t write_time = getStartEndTime(eb1);
           uint64_t read_time = getStartEndTime(eb2);

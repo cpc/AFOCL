@@ -61,6 +61,11 @@
 #define PRINTF_BUFFER_AS __attribute__((address_space(1)))
 
 
+#define MM2S_PTR_OFFSET (0x8/4)
+#define MM2S_LEN_OFFSET (0x18/4)
+#define S2MM_PTR_OFFSET (0x10/4)
+#define S2MM_LEN_OFFSET (0x18/4)
+
 enum BuiltinKernelId : uint16_t
 {
     // CD = custom device, BI = built-in
@@ -185,32 +190,23 @@ main ()
         = (__cq__ volatile struct AQLQueueInfo *)QUEUE_START;
     int read_iter = queue_info->read_index_low;
 
-    uint32_t dma0_address = 0x41E00000;
-    uint32_t sobel_address = 0x41E70000;
-    uint32_t nonmax_address = 0x41EA0000;
+    uint32_t dma0_address = 0x81E00000;
+    uint32_t dma1_address = 0x81E10000;
+    uint32_t sobel_address = 0x81E70000;
+    uint32_t nonmax_address = 0x81EA0000;
     int dma_ptr_offset = 6;
     int dma_len_offset = 10;
 
     __buffer__ volatile uint32_t* DMA_SOBEL_IN = (__buffer__ volatile uint32_t*)dma0_address;
-    __buffer__ volatile uint32_t* DMA_NONMAX_OUT = (__buffer__ volatile uint32_t*)(dma0_address + 0x30);
+    __buffer__ volatile uint32_t* DMA_NONMAX_OUT = (__buffer__ volatile uint32_t*)(dma1_address);
     __buffer__ volatile uint32_t* SOBEL = (__buffer__ volatile uint32_t*)(sobel_address);
     __buffer__ volatile uint32_t* NONMAX = (__buffer__ volatile uint32_t*)(nonmax_address);
-    int need_to_reset = 0;
+    
+    DMA_NONMAX_OUT[0] = (1 << 28);
 
     queue_info->base_address_high = 42;
-    //queue_info->reserved2 = 0;
     while (1)
     {
-        if (need_to_reset) {
-            // Soft reset the DMA engines
-            // DMA_SOBEL_OUT1 gets resetted automatically together with DMA_SOBEL_IN (MM2S and S2MM-pair)
-            DMA_SOBEL_IN[0] = 0x4;
-            // Wait while reset in progress
-            while ((DMA_SOBEL_IN[0] & 0x4) == 1);
-            need_to_reset = 0;
-        }
-
-
         // Compute packet location
         uint32_t packet_loc = QUEUE_START + AQL_PACKET_LENGTH
             + ((read_iter % QUEUE_LENGTH) * AQL_PACKET_LENGTH);
@@ -304,23 +300,13 @@ main ()
                 switch (kernel_id) {
                     case POCL_CDBI_25_26_27_28:
                         {
-                            DMA_SOBEL_IN[0] = 0x0001;
-                            uint32_t status = 1;
-                            // The DMA ip must be running before the parameters are written
-                            while ( status != 0 ) {
-                                status = DMA_SOBEL_IN[1] & 0x1;
-                            }
-                            DMA_NONMAX_OUT[0] = 0x0001;
-                            uint32_t status2 = 1;
-                            while ( status2 != 0 ) {
-                                status2 = DMA_NONMAX_OUT[1] & 0x1;
-                            }
+                            DMA_SOBEL_IN[MM2S_PTR_OFFSET] = arg0;
+                            uint32_t pixel_count = dim_x * dim_y;
+                            DMA_SOBEL_IN[MM2S_LEN_OFFSET] = pixel_count;
+                            DMA_SOBEL_IN[0] = ((1 << 31) | (1 << 28));
+                            // Launch the accelerator
                             SOBEL[4] = dim_x;
                             SOBEL[6] = dim_y;
-                            DMA_SOBEL_IN[dma_ptr_offset] = arg0;
-                            uint32_t pixel_count = dim_x * dim_y;
-                            DMA_SOBEL_IN[dma_len_offset] = pixel_count;
-                            // Launch the accelerator
                             SOBEL[0] = 1;
 
                             uint16_t threshold_lower = (uint16_t)arg2;
@@ -332,16 +318,16 @@ main ()
                             // Launch the accelerator
                             NONMAX[0] = 1;
                             // Start writing the output back to mem
-                            DMA_NONMAX_OUT[dma_ptr_offset] = arg1;
-                            DMA_NONMAX_OUT[dma_len_offset] = pixel_count;
+                            DMA_NONMAX_OUT[S2MM_PTR_OFFSET] = arg1;
+                            DMA_NONMAX_OUT[S2MM_LEN_OFFSET] = pixel_count;
+                            DMA_NONMAX_OUT[0] = ((1 << 31) | (1 << 28));
                             uint32_t status3 = 0;
                             while ( status3 == 0 ) {
-                                status3 = DMA_NONMAX_OUT[1] & 0x1;
+                                status3 = DMA_NONMAX_OUT[0] & (1 << 29);
                             }
                         }
                         break;
                 }
-                need_to_reset = 1;
             }
         }
         // Completion signal is given as absolute address

@@ -5,6 +5,7 @@ add_executable(canny canny_opencl.c opencl_util.c util.c)
 add_executable(canny_pipe canny_pipe.c opencl_util.c util.c)
 target_link_libraries(canny "-Wl,-rpath=/home/topi/pocl_wd/os/build/lib/CL/ -L/home/topi/pocl_wd/os/build/lib/CL/ -lm -lOpenCL")
 target_link_libraries(canny_pipe "-Wl,-rpath=/home/topi/pocl_wd/os/build/lib/CL/ -L/home/topi/pocl_wd/os/build/lib/CL/ -lm -lOpenCL")
+target_include_directories(canny_pipe PRIVATE "/home/topi/pocl_wd/os/include/")
 
 
 # canny1 tests have 1 device implementing the 4 BiKs

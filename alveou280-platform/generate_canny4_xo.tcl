@@ -8,7 +8,7 @@ set_property board_part xilinx.com:au280:part0:1.2 [current_project]
 
 
 set rtl_path "[pwd]/rtl_vecadd"
-add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl axi_constant_vhdl /home/topi/wb2axip/rtl]
+add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl axis_stall_counter axi_constant_vhdl /home/topi/wb2axip/rtl]
 
 import_files -force
 create_bd_design vec_${input_folder}
@@ -77,7 +77,11 @@ for {set i 0} {$i < 10} {incr i} {
     connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axis_interconnect_out/S0${i}_AXIS_ACLK]
     connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_interconnect_out/M0${i}_AXIS_ARESETN]
     connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_interconnect_out/S0${i}_AXIS_ARESETN]
-    connect_bd_intf_net [get_bd_intf_pins axis_interconnect_0/M0${i}_AXIS] [get_bd_intf_pins axis_interconnect_out/S0${i}_AXIS]
+
+    create_bd_cell -type module -reference axis_stall_counter axis_stall_counter_${i}
+    connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axis_stall_counter_$i/clk]
+    connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_stall_counter_$i/rstx]
+
 }
 
 create_bd_cell -type ip -vlnv xilinx.com:ip:axis_broadcaster:1.1 axis_broadcaster_0
@@ -95,15 +99,21 @@ connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_constant_0/rstx]
 
 
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_tta
-set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {7}] [get_bd_cells axi_interconnect_tta]
+set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {17}] [get_bd_cells axi_interconnect_tta]
 connect_bd_intf_net [get_bd_intf_pins tta_core_toplevel_0/m_axi] [get_bd_intf_pins axi_interconnect_tta/S00_AXI]
-connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M00_AXI] [get_bd_intf_pins zipcpu_aximm2s_0/S_AXIL]
-connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M01_AXI] [get_bd_intf_pins sobel3x3_ip_0/s_axi_control]
-connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M02_AXI] [get_bd_intf_pins phase_ip_0/s_axi_control]
-connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M03_AXI] [get_bd_intf_pins magnitude_ip_0/s_axi_control]
-connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M04_AXI] [get_bd_intf_pins nonmax_ip_0/s_axi_control]
-connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M05_AXI] [get_bd_intf_pins axi_constant_0/s_axi]
-connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M06_AXI] [get_bd_intf_pins zipcpu_axis2mm_0/S_AXIL]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M10_AXI] [get_bd_intf_pins zipcpu_aximm2s_0/S_AXIL]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M11_AXI] [get_bd_intf_pins sobel3x3_ip_0/s_axi_control]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M12_AXI] [get_bd_intf_pins phase_ip_0/s_axi_control]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M13_AXI] [get_bd_intf_pins magnitude_ip_0/s_axi_control]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M14_AXI] [get_bd_intf_pins nonmax_ip_0/s_axi_control]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M15_AXI] [get_bd_intf_pins axi_constant_0/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M16_AXI] [get_bd_intf_pins zipcpu_axis2mm_0/S_AXIL]
+for {set i 0} {$i < 10} {incr i} {
+    connect_bd_intf_net [get_bd_intf_pins axi_interconnect_tta/M0${i}_AXI] [get_bd_intf_pins axis_stall_counter_$i/s_axi]
+    connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M0${i}_ACLK]
+    connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M0${i}_ARESETN]
+}
+
 
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_dma/ACLK]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_dma/S00_ACLK]
@@ -117,23 +127,23 @@ connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_dma/M00_ARE
 
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/ACLK]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/S00_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M00_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M01_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M02_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M03_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M04_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M05_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M06_ACLK]
+connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M10_ACLK]
+connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M11_ACLK]
+connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M12_ACLK]
+connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M13_ACLK]
+connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M14_ACLK]
+connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M15_ACLK]
+connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/M16_ACLK]
 
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/ARESETN]
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/S00_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M00_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M01_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M02_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M03_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M04_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M05_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M06_ARESETN]
+connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M10_ARESETN]
+connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M11_ARESETN]
+connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M12_ARESETN]
+connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M13_ARESETN]
+connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M14_ARESETN]
+connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M15_ARESETN]
+connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_tta/M16_ARESETN]
 
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins sobel3x3_ip_0/ap_clk]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins nonmax_ip_0/ap_clk]
@@ -145,53 +155,58 @@ connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins nonmax_ip_0/ap_rst_n]
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins phase_ip_0/ap_rst_n]
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins magnitude_ip_0/ap_rst_n]
 
-connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_0/M00_AXIS] [get_bd_intf_pins axis_interconnect_0/S00_AXIS]
-connect_bd_net [get_bd_pins axi_constant_0/tready_10_tdest_out] [get_bd_pins axis_interconnect_0/S00_AXIS_tdest]
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 broadcaster0_tready_concat
-connect_bd_net [get_bd_pins axis_broadcaster_0/m_axis_tready] [get_bd_pins broadcaster0_tready_concat/dout]
-connect_bd_net [get_bd_pins axi_constant_0/tready_10_tready_in] [get_bd_pins axis_interconnect_0/S00_AXIS_tready]
-connect_bd_net [get_bd_pins axi_constant_0/tready_10_tready_out] [get_bd_pins broadcaster0_tready_concat/In0]
+connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_0/M00_AXIS] [get_bd_intf_pins axi_constant_0/S_AXIS_S10]
+connect_bd_intf_net [get_bd_intf_pins axi_constant_0/M_AXIS_M10] [get_bd_intf_pins axis_interconnect_0/S00_AXIS]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_10_tdest_out] [get_bd_pins axis_interconnect_0/S00_AXIS_tdest]
+#create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 broadcaster0_tready_concat
+#connect_bd_net [get_bd_pins axis_broadcaster_0/m_axis_tready] [get_bd_pins broadcaster0_tready_concat/dout]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_10_tready_in] [get_bd_pins axis_interconnect_0/S00_AXIS_tready]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_10_tready_out] [get_bd_pins broadcaster0_tready_concat/In0]
 #SLICE the broadcasters tvalid signal:
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_10_slice
-set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {0} CONFIG.DIN_FROM {0} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_10_slice]
-connect_bd_net [get_bd_pins axis_broadcaster_0/m_axis_tvalid] [get_bd_pins tvalid_10_slice/Din]
-connect_bd_net [get_bd_pins axi_constant_0/tready_10_tvalid_in] [get_bd_pins tvalid_10_slice/Dout]
-connect_bd_net [get_bd_pins axi_constant_0/tready_10_tvalid_out] [get_bd_pins axis_interconnect_0/S00_AXIS_tvalid]
+#create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_10_slice
+#set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {0} CONFIG.DIN_FROM {0} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_10_slice]
+#connect_bd_net [get_bd_pins axis_broadcaster_0/m_axis_tvalid] [get_bd_pins tvalid_10_slice/Din]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_10_tvalid_in] [get_bd_pins tvalid_10_slice/Dout]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_10_tvalid_out] [get_bd_pins axis_interconnect_0/S00_AXIS_tvalid]
 
-connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_0/M01_AXIS] [get_bd_intf_pins axis_interconnect_0/S01_AXIS]
-connect_bd_net [get_bd_pins axi_constant_0/tready_11_tdest_out] [get_bd_pins axis_interconnect_0/S01_AXIS_tdest]
-connect_bd_net [get_bd_pins axi_constant_0/tready_11_tready_in] [get_bd_pins axis_interconnect_0/S01_AXIS_tready]
-connect_bd_net [get_bd_pins axi_constant_0/tready_11_tready_out] [get_bd_pins broadcaster0_tready_concat/In1]
+connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_0/M01_AXIS] [get_bd_intf_pins axi_constant_0/S_AXIS_S11]
+connect_bd_intf_net [get_bd_intf_pins axi_constant_0/M_AXIS_M11] [get_bd_intf_pins axis_interconnect_0/S01_AXIS]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_11_tdest_out] [get_bd_pins axis_interconnect_0/S01_AXIS_tdest]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_11_tready_in] [get_bd_pins axis_interconnect_0/S01_AXIS_tready]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_11_tready_out] [get_bd_pins broadcaster0_tready_concat/In1]
 #SLICE the broadcasters tvalid signal:
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_11_slice
-set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {1} CONFIG.DIN_FROM {1} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_11_slice]
-connect_bd_net [get_bd_pins axis_broadcaster_0/m_axis_tvalid] [get_bd_pins tvalid_11_slice/Din]
-connect_bd_net [get_bd_pins axi_constant_0/tready_11_tvalid_in] [get_bd_pins tvalid_11_slice/Dout]
-connect_bd_net [get_bd_pins axi_constant_0/tready_11_tvalid_out] [get_bd_pins axis_interconnect_0/S01_AXIS_tvalid]
+#create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_11_slice
+#set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {1} CONFIG.DIN_FROM {1} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_11_slice]
+#connect_bd_net [get_bd_pins axis_broadcaster_0/m_axis_tvalid] [get_bd_pins tvalid_11_slice/Din]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_11_tvalid_in] [get_bd_pins tvalid_11_slice/Dout]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_11_tvalid_out] [get_bd_pins axis_interconnect_0/S01_AXIS_tvalid]
 
-connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_1/M00_AXIS] [get_bd_intf_pins axis_interconnect_0/S02_AXIS]
-connect_bd_net [get_bd_pins axi_constant_0/tready_12_tdest_out] [get_bd_pins axis_interconnect_0/S02_AXIS_tdest]
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 broadcaster1_tready_concat
-connect_bd_net [get_bd_pins axis_broadcaster_1/m_axis_tready] [get_bd_pins broadcaster1_tready_concat/dout]
-connect_bd_net [get_bd_pins axi_constant_0/tready_12_tready_in] [get_bd_pins axis_interconnect_0/S02_AXIS_tready]
-connect_bd_net [get_bd_pins axi_constant_0/tready_12_tready_out] [get_bd_pins broadcaster1_tready_concat/In0]
-#SLICE the broadcasters tvalid signal:
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_12_slice
-set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {0} CONFIG.DIN_FROM {0} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_12_slice]
-connect_bd_net [get_bd_pins axis_broadcaster_1/m_axis_tvalid] [get_bd_pins tvalid_12_slice/Din]
-connect_bd_net [get_bd_pins axi_constant_0/tready_12_tvalid_in] [get_bd_pins tvalid_12_slice/Dout]
-connect_bd_net [get_bd_pins axi_constant_0/tready_12_tvalid_out] [get_bd_pins axis_interconnect_0/S02_AXIS_tvalid]
+connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_1/M00_AXIS] [get_bd_intf_pins axi_constant_0/S_AXIS_S12]
+connect_bd_intf_net [get_bd_intf_pins axi_constant_0/M_AXIS_M12] [get_bd_intf_pins axis_interconnect_0/S02_AXIS]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_12_tdest_out] [get_bd_pins axis_interconnect_0/S02_AXIS_tdest]
+#create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 broadcaster1_tready_concat
+#connect_bd_net [get_bd_pins axis_broadcaster_1/m_axis_tready] [get_bd_pins broadcaster1_tready_concat/dout]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_12_tready_in] [get_bd_pins axis_interconnect_0/S02_AXIS_tready]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_12_tready_out] [get_bd_pins broadcaster1_tready_concat/In0]
+##SLICE the broadcasters tvalid signal:
+#create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_12_slice
+#set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {0} CONFIG.DIN_FROM {0} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_12_slice]
+#connect_bd_net [get_bd_pins axis_broadcaster_1/m_axis_tvalid] [get_bd_pins tvalid_12_slice/Din]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_12_tvalid_in] [get_bd_pins tvalid_12_slice/Dout]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_12_tvalid_out] [get_bd_pins axis_interconnect_0/S02_AXIS_tvalid]
 
-connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_1/M01_AXIS] [get_bd_intf_pins axis_interconnect_0/S03_AXIS]
-connect_bd_net [get_bd_pins axi_constant_0/tready_13_tdest_out] [get_bd_pins axis_interconnect_0/S03_AXIS_tdest]
-connect_bd_net [get_bd_pins axi_constant_0/tready_13_tready_in] [get_bd_pins axis_interconnect_0/S03_AXIS_tready]
-connect_bd_net [get_bd_pins axi_constant_0/tready_13_tready_out] [get_bd_pins broadcaster1_tready_concat/In1]
-#SLICE the broadcasters tvalid signal:
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_13_slice
-set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {1} CONFIG.DIN_FROM {1} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_13_slice]
-connect_bd_net [get_bd_pins axis_broadcaster_1/m_axis_tvalid] [get_bd_pins tvalid_13_slice/Din]
-connect_bd_net [get_bd_pins axi_constant_0/tready_13_tvalid_in] [get_bd_pins tvalid_13_slice/Dout]
-connect_bd_net [get_bd_pins axi_constant_0/tready_13_tvalid_out] [get_bd_pins axis_interconnect_0/S03_AXIS_tvalid]
+#connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_1/M01_AXIS] [get_bd_intf_pins axis_interconnect_0/S03_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_broadcaster_1/M01_AXIS] [get_bd_intf_pins axi_constant_0/S_AXIS_S13]
+connect_bd_intf_net [get_bd_intf_pins axi_constant_0/M_AXIS_M13] [get_bd_intf_pins axis_interconnect_0/S03_AXIS]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_13_tdest_out] [get_bd_pins axis_interconnect_0/S03_AXIS_tdest]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_13_tready_in] [get_bd_pins axis_interconnect_0/S03_AXIS_tready]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_13_tready_out] [get_bd_pins broadcaster1_tready_concat/In1]
+##SLICE the broadcasters tvalid signal:
+#create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 tvalid_13_slice
+#set_property -dict [list CONFIG.DIN_WIDTH {2} CONFIG.DIN_TO {1} CONFIG.DIN_FROM {1} CONFIG.DOUT_WIDTH {1}] [get_bd_cells tvalid_13_slice]
+#connect_bd_net [get_bd_pins axis_broadcaster_1/m_axis_tvalid] [get_bd_pins tvalid_13_slice/Din]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_13_tvalid_in] [get_bd_pins tvalid_13_slice/Dout]
+#connect_bd_net [get_bd_pins axi_constant_0/tready_13_tvalid_out] [get_bd_pins axis_interconnect_0/S03_AXIS_tvalid]
 
 connect_bd_intf_net [get_bd_intf_pins axis_interconnect_out/M00_AXIS] [get_bd_intf_pins axis_broadcaster_0/S_AXIS]
 connect_bd_intf_net [get_bd_intf_pins axis_interconnect_out/M01_AXIS] [get_bd_intf_pins axis_broadcaster_1/S_AXIS]
@@ -219,20 +234,13 @@ set_property -dict [list CONFIG.TDEST_WIDTH.VALUE_SRC USER] [get_bd_cells axis_r
 set_property -dict [list CONFIG.TDEST_WIDTH {5}] [get_bd_cells axis_register_slice_0]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axis_register_slice_0/aclk]
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_register_slice_0/aresetn]
-connect_bd_intf_net [get_bd_intf_pins axis_register_slice_0/M_AXIS] -boundary_type upper [get_bd_intf_pins axis_interconnect_0/S09_AXIS]
-connect_bd_net [get_bd_pins axis_register_slice_0/s_axis_tdest] [get_bd_pins axi_constant_0/tready_14_tdest_out]
-
-connect_bd_net [get_bd_pins axi_constant_0/tready_14_tready_in] [get_bd_pins axis_register_slice_0/s_axis_tready]
-connect_bd_net [get_bd_pins axi_constant_0/tready_14_tready_out] [get_bd_pins zipcpu_aximm2s_0/m_axis_tready]
-connect_bd_net [get_bd_pins axi_constant_0/tready_14_tvalid_in] [get_bd_pins zipcpu_aximm2s_0/m_axis_tvalid]
-connect_bd_net [get_bd_pins axi_constant_0/tready_14_tvalid_out] [get_bd_pins axis_register_slice_0/s_axis_tvalid]
+connect_bd_intf_net [get_bd_intf_pins axis_register_slice_0/M_AXIS] [get_bd_intf_pins axi_constant_0/S_AXIS_S14]
+connect_bd_intf_net [get_bd_intf_pins axi_constant_0/M_AXIS_M14] [get_bd_intf_pins axis_interconnect_0/S09_AXIS]
 
 for {set i 0} {$i < 10} {incr i} {
-    connect_bd_net [get_bd_pins axi_constant_0/tready_0${i}_tdest_out] [get_bd_pins axis_interconnect_out/S0${i}_AXIS_tdest]
-    connect_bd_net [get_bd_pins axi_constant_0/tready_0${i}_tready_in] [get_bd_pins axis_interconnect_out/S0${i}_AXIS_tready]
-    connect_bd_net [get_bd_pins axi_constant_0/tready_0${i}_tready_out] [get_bd_pins axis_interconnect_0/M0${i}_AXIS_tready]
-    connect_bd_net [get_bd_pins axi_constant_0/tready_0${i}_tvalid_in] [get_bd_pins axis_interconnect_0/M0${i}_AXIS_tvalid]
-    connect_bd_net [get_bd_pins axi_constant_0/tready_0${i}_tvalid_out] [get_bd_pins axis_interconnect_out/S0${i}_AXIS_tvalid]
+    connect_bd_intf_net [get_bd_intf_pins axis_interconnect_0/M0${i}_AXIS] [get_bd_intf_pins axis_stall_counter_$i/S_AXIS]
+    connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_$i/M_AXIS] [get_bd_intf_pins axi_constant_0/S_AXIS_S0${i}]
+    connect_bd_intf_net [get_bd_intf_pins axi_constant_0/M_AXIS_M0${i}] [get_bd_intf_pins axis_interconnect_out/S0${i}_AXIS]
 }
 
 make_bd_intf_pins_external  [get_bd_intf_pins tta_core_toplevel_0/s_axi]
@@ -260,6 +268,14 @@ set_property offset 0x41E00000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_axi_constant_0_reg0}]
 set_property offset 0x41E20000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_axis2mm_0_reg0}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_axis2mm_0_reg0}]
+
+
+for {set i 0} {$i < 10} {incr i} {
+    set stall_counter_offset [expr 0x41E21000 + ($i * 0x1000)]
+    set_property offset $stall_counter_offset [get_bd_addr_segs tta_core_toplevel_0/m_axi/SEG_axis_stall_counter_${i}_reg0]
+    set_property range 4K [get_bd_addr_segs tta_core_toplevel_0/m_axi/SEG_axis_stall_counter_${i}_reg0]
+}
+
 save_bd_design
 
 

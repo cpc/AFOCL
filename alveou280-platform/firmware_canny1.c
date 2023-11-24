@@ -184,38 +184,54 @@ main ()
         = (__cq__ volatile struct AQLQueueInfo *)QUEUE_START;
     int read_iter = queue_info->read_index_low;
 
-    uint32_t dma0_address = 0x41E00000;
-    uint32_t dma1_address = 0x41E10000;
-    uint32_t dma2_address = 0x41E20000;
-    uint32_t dma3_address = 0x41E30000;
-    uint32_t dma4_address = 0x41E40000;
-    uint32_t dma5_address = 0x41E50000;
-    uint32_t dma6_address = 0x41E60000;
-    uint32_t sobel_address = 0x41E70000;
-    //uint32_t phase_address = 0x41E80000;
-    //uint32_t magnitude_address = 0x41E90000;
-    uint32_t nonmax_address = 0x41EA0000;
-    int dma_ptr_offset = 6;
-    int dma_len_offset = 10;
+    uint32_t dma0_address = 0x81E00000;
+    uint32_t dma1_address = 0x81E10000;
+    uint32_t dma2_address = 0x81E20000;
+    uint32_t dma3_address = 0x81E30000;
+    uint32_t dma4_address = 0x81E40000;
+    uint32_t dma5_address = 0x81E50000;
+    uint32_t dma6_address = 0x81E60000;
+
+    uint32_t s2mm0_address = 0x81E70000;
+    uint32_t s2mm1_address = 0x81E80000;
+    uint32_t s2mm2_address = 0x81E90000;
+    uint32_t s2mm3_address = 0x81EA0000;
+    uint32_t s2mm4_address = 0x81EB0000;
+
+    uint32_t sobel_address = 0x81EC0000;
+    //uint32_t phase_address = 0x81E80000;
+    //uint32_t magnitude_address = 0x81E90000;
+    uint32_t nonmax_address = 0x81ED0000;
+    int mm2s_ptr_offset = 0x8/4;
+    int mm2s_len_offset = 0x18/4;
+    int s2mm_ptr_offset = 0x10/4;
+    int s2mm_len_offset = 0x18/4;
 
     __buffer__ volatile uint32_t* DMA_SOBEL_IN = (__buffer__ volatile uint32_t*)dma0_address;
-    __buffer__ volatile uint32_t* DMA_SOBEL_OUT0 = (__buffer__ volatile uint32_t*)(dma0_address + 0x30);
-    __buffer__ volatile uint32_t* DMA_SOBEL_OUT1 = (__buffer__ volatile uint32_t*)(dma1_address + 0x30);
+    __buffer__ volatile uint32_t* DMA_SOBEL_OUT0 = (__buffer__ volatile uint32_t*)(s2mm0_address);
+    __buffer__ volatile uint32_t* DMA_SOBEL_OUT1 = (__buffer__ volatile uint32_t*)(s2mm1_address);
     __buffer__ volatile uint32_t* DMA_PHASE_IN0 = (__buffer__ volatile uint32_t*)(dma1_address);
     __buffer__ volatile uint32_t* DMA_PHASE_IN1 = (__buffer__ volatile uint32_t*)(dma2_address);
-    __buffer__ volatile uint32_t* DMA_PHASE_OUT = (__buffer__ volatile uint32_t*)(dma2_address + 0x30);
+    __buffer__ volatile uint32_t* DMA_PHASE_OUT = (__buffer__ volatile uint32_t*)(s2mm2_address);
     __buffer__ volatile uint32_t* DMA_MAGNITUDE_IN0 = (__buffer__ volatile uint32_t*)(dma3_address);
     __buffer__ volatile uint32_t* DMA_MAGNITUDE_IN1 = (__buffer__ volatile uint32_t*)(dma4_address);
-    __buffer__ volatile uint32_t* DMA_MAGNITUDE_OUT = (__buffer__ volatile uint32_t*)(dma3_address + 0x30);
+    __buffer__ volatile uint32_t* DMA_MAGNITUDE_OUT = (__buffer__ volatile uint32_t*)(s2mm3_address);
+    
     
     __buffer__ volatile uint32_t* DMA_NONMAX_IN0 = (__buffer__ volatile uint32_t*)(dma5_address);
     __buffer__ volatile uint32_t* DMA_NONMAX_IN1 = (__buffer__ volatile uint32_t*)(dma6_address);
-    __buffer__ volatile uint32_t* DMA_NONMAX_OUT = (__buffer__ volatile uint32_t*)(dma4_address + 0x30);
+    __buffer__ volatile uint32_t* DMA_NONMAX_OUT = (__buffer__ volatile uint32_t*)(s2mm4_address);
     __buffer__ volatile uint32_t* SOBEL = (__buffer__ volatile uint32_t*)(sobel_address);
     //__buffer__ volatile uint32_t* PHASE = (__buffer__ volatile uint32_t*)(phase_address);
     //__buffer__ volatile uint32_t* MAGNITUDE = (__buffer__ volatile uint32_t*)(magnitude_address);
     __buffer__ volatile uint32_t* NONMAX = (__buffer__ volatile uint32_t*)(nonmax_address);
-    int need_to_reset = 0;
+   
+    DMA_SOBEL_OUT0[0] = (1 << 28);
+    DMA_SOBEL_OUT1[0] = (1 << 28);
+    DMA_PHASE_OUT[0] = (1 << 28);
+    DMA_MAGNITUDE_OUT[0] = (1 << 28);
+    DMA_NONMAX_OUT[0] = (1 << 28);
+
     int sobel_running0 = 0;
     int sobel_running1 = 0;
     int phase_running = 0;
@@ -228,81 +244,48 @@ main ()
     __buffer__ volatile uint32_t * magnitude_completion_signal = NULL;
     __buffer__ volatile uint32_t * nonmax_completion_signal = NULL;
 
-
     queue_info->base_address_high = 42;
-    //queue_info->reserved2 = 0;
     while (1)
     {
         if (sobel_running0) {
-            uint32_t status = DMA_SOBEL_OUT0[1] & 0x1;
+            uint32_t status = DMA_SOBEL_OUT0[0] & (1 << 29);
             if (status != 0) {
                 sobel_running0 = 0;
                 if (sobel_running1 == 0) {
                     *sobel_completion_signal = 1;
-                    need_to_reset = 1;
                 }
             }
         }
         if (sobel_running1) {
-            uint32_t status = DMA_SOBEL_OUT1[1] & 0x1;
+            uint32_t status = DMA_SOBEL_OUT1[0] & (1 << 29);
             if (status != 0) {
                 sobel_running1 = 0;
                 if (sobel_running0 == 0) {
                     *sobel_completion_signal = 1;
-                    need_to_reset = 1;
                 }
             }
         }
         if (phase_running) {
-            uint32_t status = DMA_PHASE_OUT[1] & 0x1;
+            uint32_t status = DMA_PHASE_OUT[0] & (1 << 29);
             if (status != 0) {
                 phase_running = 0;
                 *phase_completion_signal = 1;
-                need_to_reset = 1;
             }
         }
         if (magnitude_running) {
-            uint32_t status = DMA_MAGNITUDE_OUT[1] & 0x1;
+            uint32_t status = DMA_MAGNITUDE_OUT[0] & (1 << 29);
             if (status != 0) {
                 magnitude_running = 0;
                 *magnitude_completion_signal = 1;
-                need_to_reset = 1;
             }
         }
         if (nonmax_running) {
-            uint32_t status = DMA_NONMAX_OUT[1] & 0x1;
+            uint32_t status = DMA_NONMAX_OUT[0] & (1 << 29);
             if (status != 0) {
                 nonmax_running = 0;
                 *nonmax_completion_signal = 1;
-                need_to_reset = 1;
             }
         }
-        if (need_to_reset
-                && (sobel_running0 == 0)
-                && (sobel_running1 == 0)
-                && (magnitude_running == 0)
-                && (nonmax_running == 0)
-                && (phase_running == 0)) {
-            // Soft reset the DMA engines
-            // DMA_SOBEL_OUT1 gets resetted automatically together with DMA_SOBEL_IN (MM2S and S2MM-pair)
-            DMA_SOBEL_IN[0] = 0x4;
-            DMA_PHASE_IN0[0] = 0x4;
-            DMA_PHASE_IN1[0] = 0x4;
-            DMA_MAGNITUDE_IN0[0] = 0x4;
-            DMA_MAGNITUDE_IN1[0] = 0x4;
-            DMA_NONMAX_IN0[0] = 0x4;
-            DMA_NONMAX_IN1[0] = 0x4;
-            // Wait while reset in progress
-            while ((DMA_SOBEL_IN[0] & 0x4) == 1);
-            while ((DMA_PHASE_IN0[0] & 0x4) == 1);
-            while ((DMA_PHASE_IN1[0] & 0x4) == 1);
-            while ((DMA_MAGNITUDE_IN0[0] & 0x4) == 1);
-            while ((DMA_MAGNITUDE_IN1[0] & 0x4) == 1);
-            while ((DMA_NONMAX_IN0[0] & 0x4) == 1);
-            while ((DMA_NONMAX_IN1[0] & 0x4) == 1);
-            need_to_reset = 0;
-        }
-
 
         // Compute packet location
         uint32_t packet_loc = QUEUE_START + AQL_PACKET_LENGTH
@@ -400,47 +383,26 @@ main ()
                             if (sobel_running0 || sobel_running1) {
                                 continue;
                             }
-                            DMA_SOBEL_IN[0] = 0x0001;
-                            uint32_t status = 1;
-                            // The DMA ip must be running before the parameters are written
-                            while ( status != 0 ) {
-                                status = DMA_SOBEL_IN[1] & 0x1;
-                            }
-                            DMA_SOBEL_OUT0[0] = 0x0001;
-                            uint32_t status1 = 1;
-                            while ( status1 != 0 ) {
-                                status1 = DMA_SOBEL_OUT0[1] & 0x1;
-                            }
-                            DMA_SOBEL_OUT1[0] = 0x0001;
-                            uint32_t status2 = 1;
-                            while ( status2 != 0 ) {
-                                status2 = DMA_SOBEL_OUT1[1] & 0x1;
-                            }
                             SOBEL[4] = dim_x;
                             SOBEL[6] = dim_y;
                             //Physical starting addresses of the buffers
-                            DMA_SOBEL_IN[dma_ptr_offset] = arg0;
+                            DMA_SOBEL_IN[mm2s_ptr_offset] = arg0;
                             uint32_t pixel_count = dim_x * dim_y;
                             //Num of bytes to transfer (triggers the dma to actually start transferring)
-                            DMA_SOBEL_IN[dma_len_offset] = pixel_count;
+                            DMA_SOBEL_IN[mm2s_len_offset] = pixel_count;
+                            DMA_SOBEL_IN[0] = ((1 << 31) | (1 << 28));
                             // Launch the accelerator
                             SOBEL[0] = 1;
                             // Start writing the output back to mem
-                            DMA_SOBEL_OUT0[dma_ptr_offset] = arg1;
-                            DMA_SOBEL_OUT1[dma_ptr_offset] = arg2;
-                            DMA_SOBEL_OUT0[dma_len_offset] = pixel_count * 2;
-                            DMA_SOBEL_OUT1[dma_len_offset] = pixel_count * 2;
+                            DMA_SOBEL_OUT0[s2mm_ptr_offset] = arg1;
+                            DMA_SOBEL_OUT1[s2mm_ptr_offset] = arg2;
+                            DMA_SOBEL_OUT0[s2mm_len_offset] = pixel_count * 2;
+                            DMA_SOBEL_OUT1[s2mm_len_offset] = pixel_count * 2;
+                            DMA_SOBEL_OUT0[0] = ((1 << 31) | (1 << 28));
+                            DMA_SOBEL_OUT1[0] = ((1 << 31) | (1 << 28));
                             sobel_running0 = 1;
                             sobel_running1 = 1;
                             sobel_completion_signal = (__buffer__ uint32_t *)packet->completion_signal_low;
-                            /*uint32_t status3 = 0;
-                            while ( status3 == 0 ) {
-                                status3 = DMA_SOBEL_OUT1[1] & 0x1;
-                            }
-                            status3 = 0;
-                            while ( status3 == 0 ) {
-                                status3 = DMA_SOBEL_OUT0[1] & 0x1;
-                            }*/
                         }
                         break;
                     case POCL_CDBI_PHASE_U8:
@@ -448,41 +410,25 @@ main ()
                             if (phase_running) {
                                 continue;
                             }
-                            DMA_PHASE_IN0[0] = 0x0001;
-                            uint32_t status = 1;
-                            // The DMA ip must be running before the parameters are written
-                            while ( status != 0 ) {
-                                status = DMA_PHASE_IN0[1] & 0x1;
-                            }
-                            DMA_PHASE_OUT[0] = 0x0001;
-                            uint32_t status1 = 1;
-                            while ( status1 != 0 ) {
-                                status1 = DMA_PHASE_OUT[1] & 0x1;
-                            }
-                            DMA_PHASE_IN1[0] = 0x0001;
-                            uint32_t status2 = 1;
-                            while ( status2 != 0 ) {
-                                status2 = DMA_PHASE_IN1[1] & 0x1;
-                            }
-                            DMA_PHASE_IN0[dma_ptr_offset] = arg0;
+                            DMA_PHASE_IN0[mm2s_ptr_offset] = arg0;
                             uint32_t pixel_count = dim_x * dim_y;
                             //Num of bytes to transfer (triggers the dma to actually start transferring)
-                            DMA_PHASE_IN0[dma_len_offset] = pixel_count * 2;
-                            DMA_PHASE_IN1[dma_ptr_offset] = arg1;
-                            DMA_PHASE_IN1[dma_len_offset] = pixel_count * 2;
+                            DMA_PHASE_OUT[s2mm_ptr_offset] = arg2;
+                            DMA_PHASE_OUT[s2mm_len_offset] = pixel_count;
+                            DMA_PHASE_OUT[0] = ((1 << 31) | (1 << 28));
+                            
+                            DMA_PHASE_IN0[mm2s_len_offset] = pixel_count * 2;
+                            DMA_PHASE_IN1[mm2s_ptr_offset] = arg1;
+                            DMA_PHASE_IN1[mm2s_len_offset] = pixel_count * 2;
+                            DMA_PHASE_IN0[0] = ((1 << 31) | (1 << 28));
+                            DMA_PHASE_IN1[0] = ((1 << 31) | (1 << 28));
 /*
                             PHASE[4] = dim_x;
                             PHASE[6] = dim_y;
                             PHASE[0] = 1;
   */                          // Start writing the output back to mem
-                            DMA_PHASE_OUT[dma_ptr_offset] = arg2;
-                            DMA_PHASE_OUT[dma_len_offset] = pixel_count;
                             phase_running = 1;
                             phase_completion_signal = (__buffer__ uint32_t *)packet->completion_signal_low;
-                            /*uint32_t status3 = 0;
-                            while ( status3 == 0 ) {
-                                status3 = DMA_PHASE_OUT[1] & 0x1;
-                            }*/
                         }
                         break;
                     case POCL_CDBI_MAGNITUDE_U16:
@@ -490,63 +436,31 @@ main ()
                             if (magnitude_running) {
                                 continue;
                             }
-                            DMA_MAGNITUDE_IN0[0] = 0x0001;
-                            uint32_t status = 1;
-                            // The DMA ip must be running before the parameters are written
-                            while ( status != 0 ) {
-                                status = DMA_MAGNITUDE_IN0[1] & 0x1;
-                            }
-                            DMA_MAGNITUDE_OUT[0] = 0x0001;
-                            uint32_t status1 = 1;
-                            while ( status1 != 0 ) {
-                                status1 = DMA_MAGNITUDE_OUT[1] & 0x1;
-                            }
-                            DMA_MAGNITUDE_IN1[0] = 0x0001;
-                            uint32_t status2 = 1;
-                            while ( status2 != 0 ) {
-                                status2 = DMA_MAGNITUDE_IN1[1] & 0x1;
-                            }
-                            DMA_MAGNITUDE_IN0[dma_ptr_offset] = arg0;
                             uint32_t pixel_count = dim_x * dim_y * 2;
                             //Num of bytes to transfer (triggers the dma to actually start transferring)
-                            DMA_MAGNITUDE_IN0[dma_len_offset] = pixel_count;
-                            DMA_MAGNITUDE_IN1[dma_ptr_offset] = arg1;
-                            DMA_MAGNITUDE_IN1[dma_len_offset] = pixel_count;
+                            DMA_MAGNITUDE_OUT[s2mm_ptr_offset] = arg2;
+                            DMA_MAGNITUDE_OUT[s2mm_len_offset] = pixel_count;
+                            DMA_MAGNITUDE_OUT[0] = ((1 << 31) | (1 << 28));
+                            
+                            DMA_MAGNITUDE_IN0[mm2s_ptr_offset] = arg0;
+                            DMA_MAGNITUDE_IN0[mm2s_len_offset] = pixel_count;
+                            DMA_MAGNITUDE_IN1[mm2s_ptr_offset] = arg1;
+                            DMA_MAGNITUDE_IN1[mm2s_len_offset] = pixel_count;
+                            DMA_MAGNITUDE_IN0[0] = ((1 << 31) | (1 << 28));
+                            DMA_MAGNITUDE_IN1[0] = ((1 << 31) | (1 << 28));
 
     /*                        MAGNITUDE[4] = dim_x;
                             MAGNITUDE[6] = dim_y;
                             MAGNITUDE[0] = 1;
       */                      // Start writing the output back to mem
-                            DMA_MAGNITUDE_OUT[dma_ptr_offset] = arg2;
-                            DMA_MAGNITUDE_OUT[dma_len_offset] = pixel_count;
                             magnitude_running = 1;
                             magnitude_completion_signal = (__buffer__ uint32_t *)packet->completion_signal_low;
-                            /*uint32_t status3 = 0;
-                            while ( status3 == 0 ) {
-                                status3 = DMA_MAGNITUDE_OUT[1] & 0x1;
-                            }*/
                         }
                         break;
                     case POCL_CDBI_ORIENTED_NONMAX_U16:
                         {
                             if (nonmax_running) {
                                 continue;
-                            }
-                            DMA_NONMAX_IN0[0] = 0x0001;
-                            uint32_t status = 1;
-                            // The DMA ip must be running before the parameters are written
-                            while ( status != 0 ) {
-                                status = DMA_NONMAX_IN0[1] & 0x1;
-                            }
-                            DMA_NONMAX_IN1[0] = 0x0001;
-                            uint32_t status1 = 1;
-                            while ( status1 != 0 ) {
-                                status1 = DMA_NONMAX_IN1[1] & 0x1;
-                            }
-                            DMA_NONMAX_OUT[0] = 0x0001;
-                            uint32_t status2 = 1;
-                            while ( status2 != 0 ) {
-                                status2 = DMA_NONMAX_OUT[1] & 0x1;
                             }
                             uint16_t threshold_lower = (uint16_t)arg3;
                             uint16_t threshold_upper = (uint16_t)arg4;
@@ -556,25 +470,23 @@ main ()
                             NONMAX[10] = dim_y;
                             //Physical starting addresses of the buffers
                             uint32_t pixel_count = dim_x * dim_y;
-                            DMA_NONMAX_IN0[dma_ptr_offset] = arg0;
-                            DMA_NONMAX_IN0[dma_len_offset] = pixel_count * 2;
-                            DMA_NONMAX_IN1[dma_ptr_offset] = arg1;
-                            DMA_NONMAX_IN1[dma_len_offset] = pixel_count;
+                            DMA_NONMAX_IN0[mm2s_ptr_offset] = arg0;
+                            DMA_NONMAX_IN0[mm2s_len_offset] = pixel_count * 2;
+                            DMA_NONMAX_IN1[mm2s_ptr_offset] = arg1;
+                            DMA_NONMAX_IN1[mm2s_len_offset] = pixel_count;
+                            DMA_NONMAX_IN0[0] = ((1 << 31) | (1 << 28));
+                            DMA_NONMAX_IN1[0] = ((1 << 31) | (1 << 28));
+                            // Start writing the output back to mem
+                            DMA_NONMAX_OUT[s2mm_ptr_offset] = arg2;
+                            DMA_NONMAX_OUT[s2mm_len_offset] = pixel_count;
+                            DMA_NONMAX_OUT[0] = ((1 << 31) | (1 << 28));
                             // Launch the accelerator
                             NONMAX[0] = 1;
-                            // Start writing the output back to mem
-                            DMA_NONMAX_OUT[dma_ptr_offset] = arg2;
-                            DMA_NONMAX_OUT[dma_len_offset] = pixel_count;
                             nonmax_running = 1;
                             nonmax_completion_signal = (__buffer__ uint32_t *)packet->completion_signal_low;
-                            /*uint32_t status3 = 0;
-                            while ( status3 == 0 ) {
-                                status3 = DMA_NONMAX_OUT[1] & 0x1;
-                            }*/
                         }
                         break;
                 }
-                //need_to_reset = 1;
             }
         }
         // Completion signal is given as absolute address
