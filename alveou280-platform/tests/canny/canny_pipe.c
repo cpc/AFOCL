@@ -964,25 +964,25 @@ cannyEdgeDetection(
         clGetPipeInfo(pipes[i], CL_PIPE_PROFILING_PRODUCER_STALL_COUNT,
                 8, &profiling_counter_producer[i], NULL);
     }
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu MM2S to Sobel3x3\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu MM2S to Sobel3x3\n",
             profiling_counter_completed[0], profiling_counter_consumer[0], profiling_counter_producer[0]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Sobel3x3 to Broadcast_X\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Sobel3x3 to Broadcast_X\n",
             profiling_counter_completed[1], profiling_counter_consumer[1], profiling_counter_producer[1]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Sobel3x3 to Broadcast_Y\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Sobel3x3 to Broadcast_Y\n",
             profiling_counter_completed[2], profiling_counter_consumer[2], profiling_counter_producer[2]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_X to Phase\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Broadcast_X to Phase\n",
             profiling_counter_completed[3], profiling_counter_consumer[3], profiling_counter_producer[3]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_X to Magnitude\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Broadcast_X to Magnitude\n",
             profiling_counter_completed[4], profiling_counter_consumer[4], profiling_counter_producer[4]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_Y to Phase\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Broadcast_Y to Phase\n",
             profiling_counter_completed[5], profiling_counter_consumer[5], profiling_counter_producer[5]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Broadcast_Y to Magnitude\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Broadcast_Y to Magnitude\n",
             profiling_counter_completed[6], profiling_counter_consumer[6], profiling_counter_producer[6]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Phase to Nonmax\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Phase to Nonmax\n",
             profiling_counter_completed[7], profiling_counter_consumer[7], profiling_counter_producer[7]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Magnitude to Nonmax\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Magnitude to Nonmax\n",
             profiling_counter_completed[8], profiling_counter_consumer[8], profiling_counter_producer[8]);
-    printf("Completed: %-5lu Consumer Stalls: %-5lu Producer Stalls: %-5lu Nonmax to S2MM\n",
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Nonmax to S2MM\n",
             profiling_counter_completed[9], profiling_counter_consumer[9], profiling_counter_producer[9]);
 
     /*    uint64_t write_time = getStartEndTime(eb1);
