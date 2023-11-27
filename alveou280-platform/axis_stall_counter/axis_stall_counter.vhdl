@@ -158,6 +158,9 @@ begin
                     -- this guards against counting the stall cycles after all valid transfers are done
                     stalled_tready_count_r <= stalled_tready_count_r + tmp_stalled_tready_count_r;
                     stalled_tvalid_count_r <= stalled_tvalid_count_r + tmp_stalled_tvalid_count_r;
+                    -- reset the temporary counting registers
+                    tmp_stalled_tready_count_r <= (others => '0');
+                    tmp_stalled_tvalid_count_r <= (others => '0');
                 -- first_transfer_done_r guards against not counting stall cycles before
                 -- we have started real computation
                 elsif tvalid_r = '1' and tready_r = '0' and first_transfer_done_r = '1' then
