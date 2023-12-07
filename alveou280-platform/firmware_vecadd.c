@@ -54,6 +54,11 @@
 #define __cq__ __attribute__ ((address_space (5)))
 #define __buffer__ __attribute__ ((address_space (1)))
 
+#define MM2S_PTR_OFFSET (0x8/4)
+#define MM2S_LEN_OFFSET (0x18/4)
+#define S2MM_PTR_OFFSET (0x10/4)
+#define S2MM_LEN_OFFSET (0x18/4)
+
 enum BuiltinKernelId : uint16_t
 {
     // CD = custom device, BI = built-in
@@ -174,12 +179,16 @@ main ()
 
     uint32_t dma0_address = 0x41E00000;
     uint32_t dma1_address = 0x41E10000;
+    uint32_t dma2_address = 0x41E20000;
     int dma_ptr_offset = 6;
     int dma_len_offset = 10;
 
     __buffer__ volatile uint32_t* DMA0 = (__buffer__ volatile uint32_t*)dma0_address;
     __buffer__ volatile uint32_t* DMA1 = (__buffer__ volatile uint32_t*)dma1_address;
-    __buffer__ volatile uint32_t* DMA2 = (__buffer__ volatile uint32_t*)(dma0_address + 0x30);
+    __buffer__ volatile uint32_t* DMA2 = (__buffer__ volatile uint32_t*)dma2_address;
+    
+    DMA2[0] = (1 << 28);
+    
     int need_to_reset = 0;
 
     queue_info->base_address_high = 42;
@@ -259,9 +268,7 @@ main ()
 
             queue_info->features = dim_x;
             queue_info->type = 108;
-            if (0 ||
-                    (input0 >= ONCHIP_MEM_START && input0 < ONCHIP_MEM_END)
-               )
+            if (0 == 1)
             {
                 queue_info->features = input0;
                 queue_info->base_address_low = input1;
@@ -293,39 +300,11 @@ main ()
 
             } else {
                 queue_info->type = 110;
-
-                DMA0[0] = 0x0001;
-                uint32_t status = 1;
-                // The DMA ip must be running before the parameters are written
-                do {
-                    status = DMA0[1];
-                    queue_info->doorbell_signal_low = DMA0[0];
-                    queue_info->doorbell_signal_high = DMA0[1];
-                    status &= 0x1;
-                } while ( status != 0 );
-
-                DMA1[0] = 0x0001;
-                uint32_t status1 = 1;
-                do {
-                    status1 = DMA1[1];
-                    queue_info->doorbell_signal_low = DMA1[0];
-                    queue_info->doorbell_signal_high = DMA1[1];
-                    status1 &= 0x1;
-                } while ( status1 != 0 );
-
-                DMA2[0] = 0x0001;
-                uint32_t status2 = 1;
-                do {
-                    status2 = DMA2[1];
-                    queue_info->doorbell_signal_low = DMA2[0];
-                    queue_info->doorbell_signal_high = DMA2[1];
-                    status2 &= 0x1;
-                } while ( status2 != 0 );
-
+                
                 //Physical starting addresses of the buffers
-                DMA0[dma_ptr_offset] = input0;
-                DMA1[dma_ptr_offset] = input1;
-                DMA2[dma_ptr_offset] = output0;
+                DMA0[MM2S_PTR_OFFSET] = input0;
+                DMA1[MM2S_PTR_OFFSET] = input1;
+                DMA2[S2MM_PTR_OFFSET] = output0;
                 //Num of bytes to transfer (triggers the dma to actually start transferring)
                 uint32_t pixel_count = 0;
                 if (kernel_id == POCL_CDBI_ADD_I32 || kernel_id == POCL_CDBI_MUL_I32) {
@@ -335,18 +314,19 @@ main ()
                 } else {
                     continue;
                 }
-                DMA0[dma_len_offset] = pixel_count;
-                DMA1[dma_len_offset] = pixel_count;
-                DMA2[dma_len_offset] = pixel_count;
 
-                uint32_t status3 = 0;
-                do {
-                    status3 = DMA2[1];
-                    queue_info->doorbell_signal_low = DMA2[0];
-                    queue_info->doorbell_signal_high = DMA2[1];
-                    status3 &= 0x1;
-                } while ( status3 == 0 );
-                need_to_reset = 1;
+                DMA0[MM2S_LEN_OFFSET] = pixel_count;
+                DMA1[MM2S_LEN_OFFSET] = pixel_count;
+                DMA0[0] = ((1 << 31) | (1 << 28));
+                DMA1[0] = ((1 << 31) | (1 << 28));
+                DMA2[S2MM_LEN_OFFSET] = pixel_count;
+                DMA2[0] = ((1 << 31) | (1 << 28));
+               
+                uint32_t status = 0;
+                while (status == 0) {
+                    status = DMA2[0] & (1 << 29); 
+
+                }
             }
         }
         // Completion signal is given as absolute address

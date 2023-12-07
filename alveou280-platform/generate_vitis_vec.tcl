@@ -29,7 +29,8 @@ open_project vitis_${input_folder}
 set_top ${input_folder}_ip
 add_files kernels/${input_folder}/src/${input_folder}_ip.cpp
 open_solution "solution1" -flow_target vitis
-set_part {xcu280-fsvh2892-2L-e}
+set_part {xcvu9p-flgb2104-2-i}
+#set_part {xcu200-fsgd2104-2-e}
 create_clock -period 4 -name default
 config_export -format ip_catalog -output vec_hls_${input_folder} -rtl verilog
 config_export -ipname ${input_folder}_ip -version 2.0.1
