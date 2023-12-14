@@ -204,14 +204,14 @@ main ()
     uint32_t printf_buffer_capacity;
     //param_t p = { 0 };
 
-    uint32_t tdest_address     = 0x41E00000;
-    uint32_t dma0_address      = 0x41E10000;
-    uint32_t s2mm_address      = 0x41E20000;
-    uint32_t sobel_address     = 0x41E30000;
-    uint32_t phase_address     = 0x41E40000;
-    uint32_t magnitude_address = 0x41E50000;
-    uint32_t nonmax_address    = 0x41E60000;
-    uint32_t pipe_profiler_address    = 0x41E21000;
+    uint32_t tdest_address     = 0x81E00000;
+    uint32_t dma0_address      = 0x81E10000;
+    uint32_t s2mm_address      = 0x81E20000;
+    uint32_t sobel_address     = 0x81E30000;
+    uint32_t phase_address     = 0x81E40000;
+    uint32_t magnitude_address = 0x81E50000;
+    uint32_t nonmax_address    = 0x81E60000;
+    uint32_t pipe_profiler_address    = 0x81E21000;
     int dma_ptr_offset = 6;
     int dma_len_offset = 10;
     //int ic_offset = (0x40 / 4);

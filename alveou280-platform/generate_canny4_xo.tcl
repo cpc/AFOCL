@@ -39,16 +39,14 @@ set_property name ap_clk [get_bd_ports clk_0]
 make_bd_pins_external  [get_bd_pins tta_core_toplevel_0/rstx]
 set_property name ap_rst_n [get_bd_ports rstx_0]
 
-create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 m_axi
-set_property -dict [list CONFIG.NUM_WRITE_OUTSTANDING {2} CONFIG.NUM_READ_OUTSTANDING {2} CONFIG.ADDR_WIDTH {40} CONFIG.DATA_WIDTH {512}] [get_bd_intf_ports m_axi]
+create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 m_axi_0
+set_property -dict [list CONFIG.NUM_WRITE_OUTSTANDING {2} CONFIG.NUM_READ_OUTSTANDING {2} CONFIG.ADDR_WIDTH {40} CONFIG.DATA_WIDTH {512}] [get_bd_intf_ports m_axi_0]
+create_bd_intf_port -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 m_axi_1
+set_property -dict [list CONFIG.NUM_WRITE_OUTSTANDING {2} CONFIG.NUM_READ_OUTSTANDING {2} CONFIG.ADDR_WIDTH {40} CONFIG.DATA_WIDTH {512}] [get_bd_intf_ports m_axi_1]
 
 
-create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_dma
-connect_bd_intf_net [get_bd_intf_ports m_axi] [get_bd_intf_pins axi_interconnect_dma/M00_AXI]
-set_property -dict [list CONFIG.NUM_SI {2} CONFIG.NUM_MI {1}] [get_bd_cells axi_interconnect_dma]
-
-connect_bd_intf_net [get_bd_intf_pins zipcpu_aximm2s_0/M_AXI] [get_bd_intf_pins axi_interconnect_dma/S00_AXI]
-connect_bd_intf_net [get_bd_intf_pins zipcpu_axis2mm_0/M_AXI] [get_bd_intf_pins axi_interconnect_dma/S01_AXI]
+connect_bd_intf_net [get_bd_intf_pins zipcpu_aximm2s_0/M_AXI] [get_bd_intf_pins m_axi_0]
+connect_bd_intf_net [get_bd_intf_pins zipcpu_axis2mm_0/M_AXI] [get_bd_intf_pins m_axi_1]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins zipcpu_axis2mm_0/S_AXI_ACLK]
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins zipcpu_axis2mm_0/S_AXI_ARESETN]
 
@@ -115,15 +113,6 @@ for {set i 0} {$i < 10} {incr i} {
 }
 
 
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_dma/ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_dma/S00_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_dma/S01_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_dma/M00_ACLK]
-
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_dma/ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_dma/S00_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_dma/S01_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_dma/M00_ARESETN]
 
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/ACLK]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_tta/S00_ACLK]
@@ -248,30 +237,30 @@ set_property name s_axi_control [get_bd_intf_ports s_axi_0]
 
 regenerate_bd_layout
 assign_bd_address
-set_property offset 0x0000000000 [get_bd_addr_segs {zipcpu_aximm2s_0/M_AXI/SEG_m_axi_Reg}]
-set_property range 256M [get_bd_addr_segs {zipcpu_aximm2s_0/M_AXI/SEG_m_axi_Reg}]
-set_property offset 0x0000000000 [get_bd_addr_segs {zipcpu_axis2mm_0/M_AXI/SEG_m_axi_Reg}]
-set_property range 256M [get_bd_addr_segs {zipcpu_axis2mm_0/M_AXI/SEG_m_axi_Reg}]
+set_property offset 0x0000000000 [get_bd_addr_segs {zipcpu_aximm2s_0/M_AXI/SEG_m_axi_0_Reg}]
+set_property range 2G [get_bd_addr_segs {zipcpu_aximm2s_0/M_AXI/SEG_m_axi_0_Reg}]
+set_property offset 0x0000000000 [get_bd_addr_segs {zipcpu_axis2mm_0/M_AXI/SEG_m_axi_1_Reg}]
+set_property range 2G [get_bd_addr_segs {zipcpu_axis2mm_0/M_AXI/SEG_m_axi_1_Reg}]
 
-set_property offset 0x41E30000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_sobel3x3_ip_0_Reg}]
+set_property offset 0x81E30000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_sobel3x3_ip_0_Reg}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_sobel3x3_ip_0_Reg}]
-set_property offset 0x41E40000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_phase_ip_0_Reg}]
+set_property offset 0x81E40000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_phase_ip_0_Reg}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_phase_ip_0_Reg}]
-set_property offset 0x41E50000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_magnitude_ip_0_Reg}]
+set_property offset 0x81E50000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_magnitude_ip_0_Reg}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_magnitude_ip_0_Reg}]
-set_property offset 0x41E60000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_nonmax_ip_0_Reg}]
+set_property offset 0x81E60000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_nonmax_ip_0_Reg}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_nonmax_ip_0_Reg}]
 
-set_property offset 0x41E10000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_aximm2s_0_reg0}]
+set_property offset 0x81E10000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_aximm2s_0_reg0}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_aximm2s_0_reg0}]
-set_property offset 0x41E00000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_axi_constant_0_reg0}]
+set_property offset 0x81E00000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_axi_constant_0_reg0}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_axi_constant_0_reg0}]
-set_property offset 0x41E20000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_axis2mm_0_reg0}]
+set_property offset 0x81E20000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_axis2mm_0_reg0}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_axis2mm_0_reg0}]
 
 
 for {set i 0} {$i < 10} {incr i} {
-    set stall_counter_offset [expr 0x41E21000 + ($i * 0x1000)]
+    set stall_counter_offset [expr 0x81E21000 + ($i * 0x1000)]
     set_property offset $stall_counter_offset [get_bd_addr_segs tta_core_toplevel_0/m_axi/SEG_axis_stall_counter_${i}_reg0]
     set_property range 4K [get_bd_addr_segs tta_core_toplevel_0/m_axi/SEG_axis_stall_counter_${i}_reg0]
 }
@@ -290,13 +279,17 @@ ipx::merge_project_changes ports [ipx::find_open_core user.org:user:vec_${input_
 ipx::infer_bus_interface ap_rst_n xilinx.com:signal:reset_rtl:1.0 [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]
 ipx::associate_bus_interfaces -clock CLK.AP_CLK -reset ap_rst_n [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]
 
-ipx::add_register CTRL [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]
-ipx::add_register dummy [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]
-set_property address_offset 0x10 [ipx::get_registers dummy -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]
-set_property size 64 [ipx::get_registers dummy -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]
-ipx::add_register_parameter ASSOCIATED_BUSIF [ipx::get_registers dummy -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]
-set_property value m_axi [ipx::get_register_parameters ASSOCIATED_BUSIF -of_objects [ipx::get_registers dummy -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]]
 
+ipx::add_register CTRL [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]
+for {set i 0} {$i < 2} {incr i} {
+    ipx::associate_bus_interfaces -busif m_axi_$i -clock CLK.AP_CLK [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]
+    set dummy_offset [expr $i * 0x8 + 0x10]
+    ipx::add_register dummy_$i [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]
+    set_property address_offset $dummy_offset [ipx::get_registers dummy_$i -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]
+    set_property size 64 [ipx::get_registers dummy_$i -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]
+    ipx::add_register_parameter ASSOCIATED_BUSIF [ipx::get_registers dummy_$i -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]
+    set_property value m_axi_$i [ipx::get_register_parameters ASSOCIATED_BUSIF -of_objects [ipx::get_registers dummy_$i -of_objects [ipx::get_address_blocks Reg0 -of_objects [ipx::get_memory_maps s_axi_control -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]]]]
+}
 
 ipx::remove_bus_parameter FREQ_HZ [ipx::get_bus_interfaces CLK.AP_CLK -of_objects [ipx::find_open_core user.org:user:vec_${input_folder}:1.0]]
 
