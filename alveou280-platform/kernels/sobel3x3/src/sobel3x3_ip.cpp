@@ -27,8 +27,10 @@ void sobel3x3_ip (hls::stream<t_Vec > &in0,
 #pragma HLS array_partition variable=line2 type=cyclic factor=64
 #pragma HLS array_partition variable=line3 type=cyclic factor=64
     for (int y = 0; y < height; y++) {
+#pragma HLS pipeline II=1 style=flp
         if ( y == 0) {
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 t_Vec data1 = in0.read ();
                 for (int k = 0; k < VEC_WIDTH; k++) {
                     line1[i * VEC_WIDTH + k + 1] = data1[k];
@@ -36,6 +38,7 @@ void sobel3x3_ip (hls::stream<t_Vec > &in0,
                 }
             }
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 t_Vec data2 = in0.read ();
                 for (int k = 0; k < VEC_WIDTH; k++) {
                     line3[i * VEC_WIDTH + k + 1] = data2[k];
@@ -43,6 +46,7 @@ void sobel3x3_ip (hls::stream<t_Vec > &in0,
             }
         } else if ( y == (height - 1)) {
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 for (int k = 0; k < VEC_WIDTH; k++) {
                     line1[i * VEC_WIDTH + k + 1] = line2[i * VEC_WIDTH + k + 1];
                 }
@@ -52,6 +56,7 @@ void sobel3x3_ip (hls::stream<t_Vec > &in0,
             }
         } else {
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 for (int k = 0; k < VEC_WIDTH; k++) {
                     line1[i * VEC_WIDTH + k + 1] = line2[i * VEC_WIDTH + k + 1];
                 }
@@ -71,6 +76,7 @@ void sobel3x3_ip (hls::stream<t_Vec > &in0,
         line3[0] = line3[1];
         line3[width + 1] = line3[width];
         for (int i = 0; i < width; i += VEC_WIDTH_O) {
+#pragma HLS pipeline II=1 style=flp
             t_Vec_o data_x, data_y;
             for (int k = 0; k < VEC_WIDTH_O; k++) {
                 data_x[k] = (-1) * line1[i + k + 1 - 1] +

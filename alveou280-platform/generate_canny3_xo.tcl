@@ -8,7 +8,7 @@ set_property board_part xilinx.com:au280:part0:1.2 [current_project]
 
 
 set rtl_path "[pwd]/rtl_vecadd"
-add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl /home/topi/wb2axip/rtl]
+add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl axis_stall_counter /home/topi/wb2axip/rtl]
 
 import_files -force
 create_bd_design vec_${input_folder}
@@ -45,8 +45,8 @@ set_property -dict [list CONFIG.DATA_WIDTH {32}] [get_bd_intf_ports m_axi_2]
 
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_0
 
-set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {5}] [get_bd_cells axi_interconnect_0]
-set_property -dict [list CONFIG.M00_HAS_REGSLICE {4} CONFIG.M01_HAS_REGSLICE {4} CONFIG.M02_HAS_REGSLICE {4} CONFIG.M03_HAS_REGSLICE {4} CONFIG.M04_HAS_REGSLICE {4} CONFIG.S00_HAS_REGSLICE {4}] [get_bd_cells axi_interconnect_0]
+set_property -dict [list CONFIG.NUM_SI {1} CONFIG.NUM_MI {13}] [get_bd_cells axi_interconnect_0]
+set_property -dict [list CONFIG.M00_HAS_REGSLICE {4} CONFIG.M01_HAS_REGSLICE {4} CONFIG.M02_HAS_REGSLICE {4} CONFIG.M03_HAS_REGSLICE {4} CONFIG.M04_HAS_REGSLICE {4} CONFIG.S00_HAS_REGSLICE {4} CONFIG.M05_HAS_REGSLICE {4} CONFIG.M06_HAS_REGSLICE {4} CONFIG.M07_HAS_REGSLICE {4} CONFIG.M08_HAS_REGSLICE {4} CONFIG.M09_HAS_REGSLICE {4} CONFIG.M10_HAS_REGSLICE {4} CONFIG.M11_HAS_REGSLICE {4} CONFIG.M12_HAS_REGSLICE {4}] [get_bd_cells axi_interconnect_0]
 
 
 connect_bd_intf_net [get_bd_intf_pins zipcpu_aximm2s_0/M_AXI] -boundary_type upper [get_bd_intf_ports m_axi_0]
@@ -67,19 +67,17 @@ connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins zipcpu_axis2mm_0/S_AXI_ARESE
 
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/ACLK]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/S00_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/M00_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/M01_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/M02_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/M03_ACLK]
-connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/M04_ACLK]
-
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/M00_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/M01_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/M02_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/M03_ARESETN]
-connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/M04_ARESETN]
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/S00_ARESETN]
+
+for {set i 0} {$i < 10} {incr i} {
+    connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/M0${i}_ACLK]
+    connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/M0${i}_ARESETN]
+}
+for {set i 10} {$i < 13} {incr i} {
+    connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axi_interconnect_0/M${i}_ACLK]
+    connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axi_interconnect_0/M${i}_ARESETN]
+}
 
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins sobel3x3_ip_0/ap_clk]
 connect_bd_net [get_bd_ports ap_clk] [get_bd_pins nonmax_ip_0/ap_clk]
@@ -123,21 +121,54 @@ connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_data_fifo_3/s_axis_ares
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_data_fifo_4/s_axis_aresetn]
 connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_data_fifo_5/s_axis_aresetn]
 
-connect_bd_intf_net [get_bd_intf_pins sobel3x3_ip_0/in0] [get_bd_intf_pins zipcpu_aximm2s_0/M_AXIS]
+
+for {set i 0} {$i < 8} {incr i} {
+    create_bd_cell -type module -reference axis_stall_counter axis_stall_counter_${i}
+    connect_bd_net [get_bd_ports ap_clk] [get_bd_pins axis_stall_counter_$i/clk]
+    connect_bd_net [get_bd_ports ap_rst_n] [get_bd_pins axis_stall_counter_$i/rstx]
+}
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M05_AXI] [get_bd_intf_pins axis_stall_counter_0/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M06_AXI] [get_bd_intf_pins axis_stall_counter_1/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M07_AXI] [get_bd_intf_pins axis_stall_counter_2/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M08_AXI] [get_bd_intf_pins axis_stall_counter_3/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M09_AXI] [get_bd_intf_pins axis_stall_counter_4/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M10_AXI] [get_bd_intf_pins axis_stall_counter_5/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M11_AXI] [get_bd_intf_pins axis_stall_counter_6/s_axi]
+connect_bd_intf_net [get_bd_intf_pins axi_interconnect_0/M12_AXI] [get_bd_intf_pins axis_stall_counter_7/s_axi]
+
+
+connect_bd_intf_net [get_bd_intf_pins zipcpu_aximm2s_0/M_AXIS] [get_bd_intf_pins axis_stall_counter_0/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_0/M_AXIS] [get_bd_intf_pins sobel3x3_ip_0/in0]
+#connect_bd_intf_net [get_bd_intf_pins sobel3x3_ip_0/in0] [get_bd_intf_pins zipcpu_aximm2s_0/M_AXIS]
 connect_bd_intf_net [get_bd_intf_pins sobel3x3_ip_0/out0] [get_bd_intf_pins axis_broadcaster_0/S_AXIS]
 connect_bd_intf_net [get_bd_intf_pins sobel3x3_ip_0/out1] [get_bd_intf_pins axis_broadcaster_1/S_AXIS]
 
-connect_bd_intf_net [get_bd_intf_pins phase_ip_0/in0] [get_bd_intf_pins axis_data_fifo_0/M_AXIS]
-connect_bd_intf_net [get_bd_intf_pins phase_ip_0/in1] [get_bd_intf_pins axis_data_fifo_2/M_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_data_fifo_0/M_AXIS] [get_bd_intf_pins axis_stall_counter_1/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_1/M_AXIS] [get_bd_intf_pins phase_ip_0/in0]
+#connect_bd_intf_net [get_bd_intf_pins phase_ip_0/in0] [get_bd_intf_pins axis_data_fifo_0/M_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_data_fifo_2/M_AXIS] [get_bd_intf_pins axis_stall_counter_2/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_2/M_AXIS] [get_bd_intf_pins phase_ip_0/in1]
+#connect_bd_intf_net [get_bd_intf_pins phase_ip_0/in1] [get_bd_intf_pins axis_data_fifo_2/M_AXIS]
 connect_bd_intf_net [get_bd_intf_pins phase_ip_0/out0] [get_bd_intf_pins axis_data_fifo_4/S_AXIS]
 
-connect_bd_intf_net [get_bd_intf_pins magnitude_ip_0/in0] [get_bd_intf_pins axis_data_fifo_1/M_AXIS]
-connect_bd_intf_net [get_bd_intf_pins magnitude_ip_0/in1] [get_bd_intf_pins axis_data_fifo_3/M_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_data_fifo_1/M_AXIS] [get_bd_intf_pins axis_stall_counter_3/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_3/M_AXIS] [get_bd_intf_pins magnitude_ip_0/in0]
+connect_bd_intf_net [get_bd_intf_pins axis_data_fifo_3/M_AXIS] [get_bd_intf_pins axis_stall_counter_4/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_4/M_AXIS] [get_bd_intf_pins magnitude_ip_0/in1]
+#connect_bd_intf_net [get_bd_intf_pins magnitude_ip_0/in0] [get_bd_intf_pins axis_data_fifo_1/M_AXIS]
+#connect_bd_intf_net [get_bd_intf_pins magnitude_ip_0/in1] [get_bd_intf_pins axis_data_fifo_3/M_AXIS]
 connect_bd_intf_net [get_bd_intf_pins magnitude_ip_0/out0] [get_bd_intf_pins axis_data_fifo_5/S_AXIS]
 
-connect_bd_intf_net [get_bd_intf_pins nonmax_ip_0/in0] [get_bd_intf_pins axis_data_fifo_5/M_AXIS]
-connect_bd_intf_net [get_bd_intf_pins nonmax_ip_0/in1] [get_bd_intf_pins axis_data_fifo_4/M_AXIS]
-connect_bd_intf_net [get_bd_intf_pins nonmax_ip_0/out0] [get_bd_intf_pins zipcpu_axis2mm_0/S_AXIS]
+
+connect_bd_intf_net [get_bd_intf_pins axis_data_fifo_5/M_AXIS] [get_bd_intf_pins axis_stall_counter_5/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_5/M_AXIS] [get_bd_intf_pins nonmax_ip_0/in0]
+connect_bd_intf_net [get_bd_intf_pins axis_data_fifo_4/M_AXIS] [get_bd_intf_pins axis_stall_counter_6/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_6/M_AXIS] [get_bd_intf_pins nonmax_ip_0/in1]
+#connect_bd_intf_net [get_bd_intf_pins nonmax_ip_0/in0] [get_bd_intf_pins axis_data_fifo_5/M_AXIS]
+#connect_bd_intf_net [get_bd_intf_pins nonmax_ip_0/in1] [get_bd_intf_pins axis_data_fifo_4/M_AXIS]
+connect_bd_intf_net [get_bd_intf_pins nonmax_ip_0/out0] [get_bd_intf_pins axis_stall_counter_7/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_stall_counter_7/M_AXIS] [get_bd_intf_pins zipcpu_axis2mm_0/S_AXIS]
+#connect_bd_intf_net [get_bd_intf_pins nonmax_ip_0/out0] [get_bd_intf_pins zipcpu_axis2mm_0/S_AXIS]
 
 
 make_bd_intf_pins_external  [get_bd_intf_pins tta_core_toplevel_0/s_axi]
@@ -160,8 +191,15 @@ set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_ax
 set_property offset 0x81E10000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_axis2mm_0_reg0}]
 set_property range 4K [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_zipcpu_axis2mm_0_reg0}]
 
+for {set i 0} {$i < 8} {incr i} {
+    set stall_counter_offset [expr 0x81E21000 + ($i * 0x1000)]
+    set_property offset $stall_counter_offset [get_bd_addr_segs tta_core_toplevel_0/m_axi/SEG_axis_stall_counter_${i}_reg0]
+    set_property range 4K [get_bd_addr_segs tta_core_toplevel_0/m_axi/SEG_axis_stall_counter_${i}_reg0]
+}
+
 set_property offset 0x00000000 [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_m_axi_2_Reg}]
 set_property range 2G [get_bd_addr_segs {tta_core_toplevel_0/m_axi/SEG_m_axi_2_Reg}]
+
 save_bd_design
 
 

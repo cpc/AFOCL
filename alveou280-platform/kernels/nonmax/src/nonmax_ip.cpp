@@ -29,8 +29,10 @@ void nonmax_ip(hls::stream<t_Vec_i> &in0,
 #pragma HLS array_partition variable=line_mag2 type=cyclic factor=64
 #pragma HLS array_partition variable=line_mag3 type=cyclic factor=64
     for (int y = 0; y < height; y++) {
+#pragma HLS pipeline II=1 style=flp
         if ( y == 0) {
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 t_Vec_i data1 = in0.read ();
                 for (int k = 0; k < VEC_WIDTH_I; k++) {
                     line_mag1[i * VEC_WIDTH_I + k + 1] = data1[k];
@@ -38,6 +40,7 @@ void nonmax_ip(hls::stream<t_Vec_i> &in0,
                 }
             }
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 t_Vec_i data2 = in0.read ();
                 for (int k = 0; k < VEC_WIDTH_I; k++) {
                     line_mag3[i * VEC_WIDTH_I + k + 1] = data2[k];
@@ -45,6 +48,7 @@ void nonmax_ip(hls::stream<t_Vec_i> &in0,
             }
         } else if ( y == (height - 1)) {
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 for (int k = 0; k < VEC_WIDTH_I; k++) {
                     line_mag1[i * VEC_WIDTH_I + k + 1] = line_mag2[i * VEC_WIDTH_I + k + 1];
                 }
@@ -54,6 +58,7 @@ void nonmax_ip(hls::stream<t_Vec_i> &in0,
             }
         } else {
             for (int i = 0; i < width_in_vectors; i++) {
+#pragma HLS pipeline II=1 style=flp
                 for (int k = 0; k < VEC_WIDTH_I; k++) {
                     line_mag1[i * VEC_WIDTH_I + k + 1] = line_mag2[i * VEC_WIDTH_I + k + 1];
                 }
@@ -73,6 +78,7 @@ void nonmax_ip(hls::stream<t_Vec_i> &in0,
         line_mag3[0] = line_mag3[1];
         line_mag3[width + 1] = line_mag3[width];
         for (int i = 0; i < width; i += VEC_WIDTH_O) {
+#pragma HLS pipeline II=1 style=flp
             t_Vec_o output_data;
             t_Vec_o phase_data = in1.read();
             for (int k = 0; k < VEC_WIDTH_O; k++) {

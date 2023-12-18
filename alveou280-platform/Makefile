@@ -377,6 +377,7 @@ vec_canny3_sim.xclbin: vec_canny3.xo
 	mv tmp_canny3_sim.xclbin $@
 	emconfigutil --platform $(PFM)
 
+#--vivado.impl.strategies Congestion_SpreadLogic_high \
 
 .PRECIOUS: vec_canny4.xclbin
 vec_canny4.xclbin: vec_canny4.xo
@@ -389,9 +390,8 @@ vec_canny4.xclbin: vec_canny4.xo
 		--user_ip_repo_paths vitis_nonmax_ctrl/solution1/impl/ \
 		--user_ip_repo_paths ip_repo_canny4 \
 		--kernel_frequency 220 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny4 \
-		--vivado.impl.strategies Congestion_SpreadLogic_high \
-		--connectivity.sp vec_canny4_1.m_axi_0:HBM[0-7] \
-		--connectivity.sp vec_canny4_1.m_axi_1:HBM[0-7]
+		--connectivity.sp vec_canny4_1.m_axi_0:HBM[0:7] \
+		--connectivity.sp vec_canny4_1.m_axi_1:HBM[0:7]
 	xclbinutil --dump-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny4.xml --input $@ --force
 	python3 set_xclbin_range.py embeddedMetadata_canny4.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny4.xml --input $@ --output tmp_canny4.xclbin

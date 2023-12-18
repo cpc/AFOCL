@@ -135,6 +135,9 @@ struct CommandMetadata
     uint32_t finish_timestamp_h;
     uint32_t reserved1;
     uint32_t reserved2;
+    uint32_t pipe_completed_address;
+    uint32_t pipe_consumer_stalls_address;
+    uint32_t pipe_producer_stalls_address;
 };
 
 struct AQLDispatchPacket
@@ -181,7 +184,12 @@ struct AQLAndPacket
     uint32_t completion_signal_high;
 };
 
-
+#define PIPE_COMPLETED_LO (0)
+#define PIPE_COMPLETED_HI (1)
+#define PIPE_CONSUMER_STALL_LO (2)
+#define PIPE_CONSUMER_STALL_HI (3)
+#define PIPE_PRODUCER_STALL_LO (4)
+#define PIPE_PRODUCER_STALL_HI (5)
 
 int
 main ()
@@ -194,6 +202,7 @@ main ()
     uint32_t dma1_address = 0x81E10000;
     uint32_t sobel_address = 0x81E70000;
     uint32_t nonmax_address = 0x81EA0000;
+    uint32_t pipe_profiler_address = 0x81E21000;
     int dma_ptr_offset = 6;
     int dma_len_offset = 10;
 
@@ -324,6 +333,23 @@ main ()
                             uint32_t status3 = 0;
                             while ( status3 == 0 ) {
                                 status3 = DMA_NONMAX_OUT[0] & (1 << 29);
+                            }
+                            // Read the profilers
+                            __buffer__ volatile uint32_t* complete_counts =
+                                (__buffer__ volatile uint32_t*)(cmd_meta->pipe_completed_address);
+                            __buffer__ volatile uint32_t* producer_stalls =
+                                (__buffer__ __volatile uint32_t*)(cmd_meta->pipe_producer_stalls_address);
+                            __buffer__ volatile uint32_t* consumer_stalls =
+                                (__buffer__ volatile uint32_t*)(cmd_meta->pipe_consumer_stalls_address);
+                            for (int k = 0; k < 8; k++) {
+                                __buffer__ volatile uint32_t* PROFILER =
+                                    (__buffer__ volatile uint32_t*)(pipe_profiler_address + k * 0x1000);
+                                complete_counts[2*k] = PROFILER[PIPE_COMPLETED_LO];
+                                complete_counts[2*k+1] = PROFILER[PIPE_COMPLETED_HI];
+                                consumer_stalls[2*k] = PROFILER[PIPE_CONSUMER_STALL_LO];
+                                consumer_stalls[2*k+1] = PROFILER[PIPE_CONSUMER_STALL_HI];
+                                producer_stalls[2*k] = PROFILER[PIPE_PRODUCER_STALL_LO];
+                                producer_stalls[2*k+1] = PROFILER[PIPE_PRODUCER_STALL_HI];
                             }
                         }
                         break;
