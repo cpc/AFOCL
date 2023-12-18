@@ -55,6 +55,7 @@ cl_command_queue commandQueue[4];
 cl_program program[4];
 cl_kernel stream_in_kernel;
 cl_kernel sobel_kernel;
+cl_kernel gaussian_kernel;
 cl_kernel bcast_x_kernel;
 cl_kernel bcast_y_kernel;
 cl_kernel phase_kernel;
@@ -62,6 +63,8 @@ cl_kernel magnitude_kernel;
 cl_kernel nonmax_suppr_kernel;
 cl_kernel stream_out_kernel;
 cl_kernel canny_kernel;
+int gaussian_kernel_enabled = 0;
+int gaussian_kernel_device_idx = 0;
 int sobel_kernel_enabled = 0;
 int sobel_kernel_device_idx = 0;
 int phase_kernel_enabled = 0;
@@ -73,7 +76,7 @@ int suppr_kernel_device_idx = 0;
 int canny_kernel_enabled = 0;
 int canny_kernel_device_idx = 0;
 cl_mem input_buffer;
-cl_mem pipes[10];
+cl_mem pipes[11];
 /*cl_mem input_pipe;
 cl_mem pipes[1];
 cl_mem pipes[2];
@@ -260,6 +263,10 @@ init(
                 sobel_kernel_enabled = 1;
                 sobel_kernel_device_idx = r;
             }
+            if (strstr(bik_list, "pocl.gaussian3x3.p512")) {
+                gaussian_kernel_enabled = 1;
+                gaussian_kernel_device_idx = r;
+            }
             if (strstr(bik_list, "pocl.phase.p512")) {
                 phase_kernel_enabled = 1;
                 phase_kernel_device_idx = r;
@@ -381,6 +388,11 @@ init(
         printf(
             "Suppressed pipe creation error: %s\n", clErrorString(retval));
     }
+    pipes[10] = clCreatePipe(context, 0, 64, 128, NULL, &retval);
+    if (retval != CL_SUCCESS) {
+        printf(
+            "Gaussian pipe creation error: %s\n", clErrorString(retval));
+    }
     suppressed_buffer = clCreateBuffer(
         context,
         CL_MEM_HOST_READ_ONLY | CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR,
@@ -451,10 +463,32 @@ init(
         if (retval != CL_SUCCESS) {
             printf("Kernel creation error: %s\n", clErrorString(retval));
         }
-        // Set buffers to kernel arguments
-        retval = clSetKernelArg(sobel_kernel, 0, sizeof(cl_mem), &pipes[0]);
-        if (retval != CL_SUCCESS) {
-            printf("Sobel argument setting error: %s\n", clErrorString(retval));
+
+        if (gaussian_kernel_enabled) {
+            // insert gaussian kernel before sobel if it exists
+            gaussian_kernel = clCreateKernel(program[gaussian_kernel_device_idx], "pocl.gaussian3x3.p512", &retval);
+            if (retval != CL_SUCCESS) {
+                printf("Kernel creation error: %s\n", clErrorString(retval));
+            }
+            // Set buffers to kernel arguments
+            retval = clSetKernelArg(gaussian_kernel, 0, sizeof(cl_mem), &pipes[0]);
+            if (retval != CL_SUCCESS) {
+                printf("Gaussian argument setting error: %s\n", clErrorString(retval));
+            }
+            retval = clSetKernelArg(gaussian_kernel, 1, sizeof(cl_mem), &pipes[10]);
+            if (retval != CL_SUCCESS) {
+                printf("Gaussian argument setting error: %s\n", clErrorString(retval));
+            }
+            retval = clSetKernelArg(sobel_kernel, 0, sizeof(cl_mem), &pipes[10]);
+            if (retval != CL_SUCCESS) {
+                printf("Sobel argument setting error: %s\n", clErrorString(retval));
+            }
+        } else {
+            // No gaussian, pipe input directly to sobel
+            retval = clSetKernelArg(sobel_kernel, 0, sizeof(cl_mem), &pipes[0]);
+            if (retval != CL_SUCCESS) {
+                printf("Sobel argument setting error: %s\n", clErrorString(retval));
+            }
         }
         retval = clSetKernelArg(sobel_kernel, 1, sizeof(cl_mem), &pipes[1]);
         if (retval != CL_SUCCESS) {
@@ -850,7 +884,7 @@ cannyEdgeDetection(
     uint16_t *magnitude = malloc(image_size * sizeof(uint16_t));
     assert(magnitude);
 
-    cl_event e1, e2, e3, e4, e5, eb1, eb2, eb3;
+    cl_event e2, e3, e4, e5, eb1, eb2, eb3;
     if (sobel_kernel_enabled) {
         clEnqueueWriteBuffer(
                 commandQueue[sobel_kernel_device_idx], input_buffer, CL_FALSE, 0, width * height, input, 0,
@@ -859,8 +893,12 @@ cannyEdgeDetection(
 
         clEnqueueNDRangeKernel(
                 commandQueue[sobel_kernel_device_idx], stream_in_kernel, 2, NULL, global, NULL, 1, &eb1, NULL);
+        if (gaussian_kernel_enabled) {
+            clEnqueueNDRangeKernel(
+                    commandQueue[gaussian_kernel_device_idx], gaussian_kernel, 2, NULL, global, NULL, 0, NULL, NULL);
+        }
         clEnqueueNDRangeKernel(
-                commandQueue[sobel_kernel_device_idx], sobel_kernel, 2, NULL, global, NULL, 0, NULL, &e1);
+                commandQueue[sobel_kernel_device_idx], sobel_kernel, 2, NULL, global, NULL, 0, NULL, NULL);
 
         if (phase_kernel_enabled && magnitude_kernel_enabled) {
             clEnqueueNDRangeKernel(
@@ -952,11 +990,11 @@ cannyEdgeDetection(
     runtimes[2] /= 1000000.0;
     runtimes[3] = (tracing_time_end - tracing_time_start) / 1000000.0;
 
-    uint64_t profiling_counter_completed[10];
-    uint64_t profiling_counter_consumer[10];
-    uint64_t profiling_counter_producer[10];
+    uint64_t profiling_counter_completed[11];
+    uint64_t profiling_counter_consumer[11];
+    uint64_t profiling_counter_producer[11];
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 11; i++) {
         clGetPipeInfo(pipes[i], CL_PIPE_PROFILING_TRANSFER_COUNT,
                 8, &profiling_counter_completed[i], NULL);
         clGetPipeInfo(pipes[i], CL_PIPE_PROFILING_CONSUMER_STALL_COUNT,
@@ -984,6 +1022,8 @@ cannyEdgeDetection(
             profiling_counter_completed[8], profiling_counter_consumer[8], profiling_counter_producer[8]);
     printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Nonmax to S2MM\n",
             profiling_counter_completed[9], profiling_counter_consumer[9], profiling_counter_producer[9]);
+    printf("Completed: %-15lu Consumer Stalls: %-15lu Producer Stalls: %-15lu Gaussian to Sobell\n",
+            profiling_counter_completed[10], profiling_counter_consumer[10], profiling_counter_producer[10]);
 
     /*    uint64_t write_time = getStartEndTime(eb1);
           uint64_t read_time = getStartEndTime(eb2);
@@ -1160,7 +1200,7 @@ main(int argc, char **argv) {
             uint8_t *output_image_ref = malloc(width * height);
             assert(output_image_ref);
             cannyEdgeDetection_ref(
-                    input_image, width, height, threshold_lower, threshold_upper,
+                    input_image, width, height, threshold_lower, threshold_upper, gaussian_kernel_enabled,
                     output_image_ref);
 
             uint8_t *fused_comparison = malloc(width * height);

@@ -97,6 +97,7 @@ enum BuiltinKernelId : uint16_t
     POCL_CDBI_PHASE_P512 = 34,
     POCL_CDBI_MAGNITUDE_P512 = 35,
     POCL_CDBI_ORIENTED_NONMAX_P512 = 36,
+    POCL_CDBI_GAUSSIAN3X3_P512 = 37,
     POCL_CDBI_LAST,
     POCL_CDBI_JIT_COMPILER = 0xFFFF
 };
@@ -211,6 +212,7 @@ main ()
     uint32_t phase_address     = 0x81E40000;
     uint32_t magnitude_address = 0x81E50000;
     uint32_t nonmax_address    = 0x81E60000;
+    uint32_t gaussian_address  = 0x81E70000;
     uint32_t pipe_profiler_address    = 0x81E21000;
     int dma_ptr_offset = 6;
     int dma_len_offset = 10;
@@ -221,18 +223,21 @@ main ()
     //__buffer__ volatile uint32_t* DMA_STREAM_OUT = (__buffer__ volatile uint32_t*)(dma0_address + 0x30);
     __buffer__ volatile uint32_t* DMA_STREAM_OUT = (__buffer__ volatile uint32_t*)s2mm_address;
     __buffer__ volatile uint32_t* SOBEL = (__buffer__ volatile uint32_t*)(sobel_address);
+    __buffer__ volatile uint32_t* GAUSSIAN = (__buffer__ volatile uint32_t*)(gaussian_address);
     __buffer__ volatile uint32_t* PHASE = (__buffer__ volatile uint32_t*)(phase_address);
     __buffer__ volatile uint32_t* MAGNITUDE = (__buffer__ volatile uint32_t*)(magnitude_address);
     __buffer__ volatile uint32_t* NONMAX = (__buffer__ volatile uint32_t*)(nonmax_address);
     int stream_in_running = 0;
     int stream_out_running = 0;
     int sobel_running = 0;
+    int gaussian_running = 0;
     int phase_running = 0;
     int magnitude_running = 0;
     int nonmax_running = 0;
     __buffer__ volatile uint32_t * stream_in_completion_signal = NULL;
     __buffer__ volatile uint32_t * stream_out_completion_signal = NULL;
     __buffer__ volatile uint32_t * sobel_completion_signal = NULL;
+    __buffer__ volatile uint32_t * gaussian_completion_signal = NULL;
     __buffer__ volatile uint32_t * phase_completion_signal = NULL;
     __buffer__ volatile uint32_t * magnitude_completion_signal = NULL;
     __buffer__ volatile uint32_t * nonmax_completion_signal = NULL;
@@ -256,10 +261,10 @@ main ()
                 __buffer__ volatile uint32_t* complete_counts =
                     (__buffer__ volatile uint32_t*)(cmd_meta->pipe_completed_address);
                 __buffer__ volatile uint32_t* producer_stalls =
-                    (__buffer__ __volatile uint32_t*)(cmd_meta->pipe_producer_stalls_address);
+                    (__buffer__ volatile uint32_t*)(cmd_meta->pipe_producer_stalls_address);
                 __buffer__ volatile uint32_t* consumer_stalls =
                     (__buffer__ volatile uint32_t*)(cmd_meta->pipe_consumer_stalls_address);
-                for (int k = 0; k < 10; k++) {
+                for (int k = 0; k < 11; k++) {
                     __buffer__ volatile uint32_t* PROFILER =
                         (__buffer__ volatile uint32_t*)(pipe_profiler_address + k * 0x1000);
                     complete_counts[2*k] = PROFILER[PIPE_COMPLETED_LO];
@@ -278,6 +283,13 @@ main ()
             if (status != 0) {
                 sobel_running = 0;
                 *sobel_completion_signal = 1;
+            }
+        }
+        if (gaussian_running) {
+            uint32_t status = GAUSSIAN[0] & 0x2;
+            if (status != 0) {
+                gaussian_running = 0;
+                *gaussian_completion_signal = 1;
             }
         }
         if (phase_running) {
@@ -389,7 +401,7 @@ main ()
                         DMA_STREAM_IN[0] = ((1 << 31) | (1 << 28));
 
                         //IC_IN[ic_offset + arg1] = 9;
-                        TDEST[14] = arg1;
+                        TDEST[15] = arg1;
 
                         stream_in_running = 1;
                         stream_in_completion_signal = (__buffer__ uint32_t *)packet->completion_signal_low;
@@ -414,14 +426,14 @@ main ()
                     {
                         if (use_bcast_1) {
                             //IC_OUT[ic_offset + 0] = arg0;
-                            TDEST[10] = arg1;
-                            TDEST[11] = arg2;
+                            TDEST[11] = arg1;
+                            TDEST[12] = arg2;
                             TDEST[arg0] = 0;
                             use_bcast_1 = 0;
                         } else {
                             //IC_OUT[ic_offset + 1] = arg0;
-                            TDEST[12] = arg1;
-                            TDEST[13] = arg2;
+                            TDEST[13] = arg1;
+                            TDEST[14] = arg2;
                             TDEST[arg0] = 1;
                             use_bcast_1 = 1;
                         }
@@ -446,6 +458,22 @@ main ()
                         //IC_IN[ic_offset + arg2] = 5;
                         sobel_running = 1;
                         sobel_completion_signal = (__buffer__ uint32_t *)packet->completion_signal_low;
+                    }
+                    break;
+                case POCL_CDBI_GAUSSIAN3X3_P512:
+                    {
+                        if (gaussian_running) {
+                            continue;
+                        }
+                        TDEST[arg0] = 10;
+                        GAUSSIAN[4] = dim_x;
+                        GAUSSIAN[6] = dim_y;
+                        GAUSSIAN[8] = arg1;
+                        GAUSSIAN[0] = 1;
+                        //IC_IN[ic_offset + arg1] = 4;
+                        //IC_IN[ic_offset + arg2] = 5;
+                        gaussian_running = 1;
+                        gaussian_completion_signal = (__buffer__ uint32_t *)packet->completion_signal_low;
                     }
                     break;
                 case POCL_CDBI_PHASE_P512:

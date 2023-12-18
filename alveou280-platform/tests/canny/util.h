@@ -13,12 +13,17 @@
 void cannyEdgeDetection_ref(
     uint8_t* __restrict input, size_t width, size_t height,
     uint16_t threshold_lower, uint16_t threshold_upper,
+    int gaussian_kernel_enabled,
     uint8_t* __restrict output);
 
 
 void sobel3x3_ref(
     const uint8_t* __restrict in, size_t width, size_t height,
     int16_t* __restrict output_x, int16_t* __restrict output_y);
+
+void gaussian3x3_ref(
+    const uint8_t* __restrict in, size_t width, size_t height,
+    uint8_t* __restrict output);
 
 void phaseAndMagnitude_ref(
     const int16_t* __restrict in_x, const int16_t* __restrict in_y,

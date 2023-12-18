@@ -173,7 +173,7 @@ vec_canny3.xo: vec_hls_sobel3x3.zip generate_canny3_xo.tcl rtl_vecadd vec_hls_ph
 	vivado -mode batch -source $(word 2,$^) -tclargs canny3
 
 .PRECIOUS: vec_canny4.xo
-vec_canny4.xo: vec_hls_sobel3x3_ctrl.zip generate_canny4_xo.tcl rtl_vecadd vec_hls_phase_ctrl.zip vec_hls_magnitude_ctrl.zip vec_hls_nonmax_ctrl.zip axis_stall_counter/axis_stall_counter.vhdl axi_constant_vhdl/axi_constant.vhdl
+vec_canny4.xo: vec_hls_sobel3x3_ctrl.zip generate_canny4_xo.tcl rtl_vecadd vec_hls_gaussian3x3_ctrl.zip vec_hls_phase_ctrl.zip vec_hls_magnitude_ctrl.zip vec_hls_nonmax_ctrl.zip axis_stall_counter/axis_stall_counter.vhdl axi_constant_vhdl/axi_constant.vhdl
 	rm -f vec_canny4.xo vec_canny4_sim.xo
 	rm -rf vivado_canny4_xo
 	vivado -mode batch -source $(word 2,$^) -tclargs canny4
@@ -385,6 +385,7 @@ vec_canny4.xclbin: vec_canny4.xo
 	$(eval $@_xo := $<)
 	v++ -O3 --temp_dir ./_x.canny4 -R 2 -l $(VPPFLAGS) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3_ctrl/solution1/impl/ \
+		--user_ip_repo_paths vitis_gaussian3x3_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_nonmax_ctrl/solution1/impl/ \
@@ -402,6 +403,7 @@ vec_canny4_sim.xclbin: vec_canny4.xo
 	$(eval $@_xo := vec_canny4_sim.xo)
 	v++ -O3 --temp_dir ./_x.canny4_sim -R 2 -l $(VPPFLAGS_SIM) $(VPPLFLAGS) \
 		--user_ip_repo_paths vitis_sobel3x3_ctrl/solution1/impl/ \
+		--user_ip_repo_paths vitis_gaussian3x3_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_phase_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_nonmax_ctrl/solution1/impl/ \

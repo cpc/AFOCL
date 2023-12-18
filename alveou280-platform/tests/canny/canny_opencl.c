@@ -1108,7 +1108,7 @@ main(int argc, char **argv) {
             uint8_t *output_image_ref = malloc(width * height);
             assert(output_image_ref);
             cannyEdgeDetection_ref(
-                    input_image, width, height, threshold_lower, threshold_upper,
+                    input_image, width, height, threshold_lower, threshold_upper, 0,
                     output_image_ref);
 
             uint8_t *fused_comparison = malloc(width * height);

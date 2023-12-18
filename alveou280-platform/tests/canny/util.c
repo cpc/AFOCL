@@ -64,6 +64,29 @@ sobel3x3_ref(
     }
 }
 
+void
+gaussian3x3_ref(
+    const uint8_t* __restrict in, size_t width, size_t height,
+    uint8_t* __restrict output) {
+    for (size_t y = 0; y < height; y++) {
+        for (size_t x = 0; x < width; x++) {
+            size_t gid = y * width + x;
+            uint16_t output_val =
+                            1 * in[idx_ref(x, y, width, height, -1, -1)] +
+                            2 * in[idx_ref(x, y, width, height,  0, -1)] +
+                            1 * in[idx_ref(x, y, width, height,  1, -1)] +
+                            2 * in[idx_ref(x, y, width, height, -1,  0)] +
+                            4 * in[idx_ref(x, y, width, height,  0,  0)] +
+                            2 * in[idx_ref(x, y, width, height,  1,  0)] +
+                            1 * in[idx_ref(x, y, width, height, -1,  1)] +
+                            2 * in[idx_ref(x, y, width, height,  0,  1)] +
+                            1 * in[idx_ref(x, y, width, height,  1,  1)];
+
+            output[gid] = (uint8_t)(output_val / 16);
+        }
+    }
+}
+
 // ¤¤ DO NOT EDIT THIS FUNCTION ¤¤
 void
 phaseAndMagnitude_ref(
@@ -262,8 +285,12 @@ void
 cannyEdgeDetection_ref(
     uint8_t* __restrict input, size_t width, size_t height,
     uint16_t threshold_lower, uint16_t threshold_upper,
+    int gaussian_kernel_enabled,
     uint8_t* __restrict output) {
     size_t image_size = width * height;
+
+    uint8_t* gaussian = malloc(image_size * sizeof(uint8_t));
+    assert(gaussian);
 
     // Allocate arrays for intermediate results
     int16_t* sobel_x = malloc(image_size * sizeof(int16_t));
@@ -281,8 +308,12 @@ cannyEdgeDetection_ref(
     uint64_t times[5];
     // Canny edge detection algorithm consists of the following functions:
     times[0] = gettimemono_ns();
-    sobel3x3_ref(input, width, height, sobel_x, sobel_y);
-
+    if (gaussian_kernel_enabled) {
+        gaussian3x3_ref(input, width, height, gaussian);
+        sobel3x3_ref(gaussian, width, height, sobel_x, sobel_y);
+    } else {
+        sobel3x3_ref(input, width, height, sobel_x, sobel_y);
+    }
     times[1] = gettimemono_ns();
     phaseAndMagnitude_ref(sobel_x, sobel_y, width, height, phase, magnitude);
 
