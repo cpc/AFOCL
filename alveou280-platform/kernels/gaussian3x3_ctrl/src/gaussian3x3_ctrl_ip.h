@@ -10,7 +10,6 @@
 const int MAX_LINE_WIDTH = (4480);
 const int LINE_BUF_SIZE = (MAX_LINE_WIDTH + 2);
 
-const int VEC_WIDTH_BITS = 512;
 const int VEC_WIDTH = VEC_WIDTH_BITS / 8;
 
 typedef hls::vector< unsigned char, VEC_WIDTH > t_Vec;

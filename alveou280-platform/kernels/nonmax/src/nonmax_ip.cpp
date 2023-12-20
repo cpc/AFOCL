@@ -25,9 +25,9 @@ void nonmax_ip(hls::stream<t_Vec_i> &in0,
     uint16_t line_mag1[LINE_BUF_SIZE];
     uint16_t line_mag2[LINE_BUF_SIZE];
     uint16_t line_mag3[LINE_BUF_SIZE];
-#pragma HLS array_partition variable=line_mag1 type=cyclic factor=64
-#pragma HLS array_partition variable=line_mag2 type=cyclic factor=64
-#pragma HLS array_partition variable=line_mag3 type=cyclic factor=64
+#pragma HLS array_partition variable=line_mag1 type=cyclic factor=VEC_WIDTH_O
+#pragma HLS array_partition variable=line_mag2 type=cyclic factor=VEC_WIDTH_O
+#pragma HLS array_partition variable=line_mag3 type=cyclic factor=VEC_WIDTH_O
     for (int y = 0; y < height; y++) {
 #pragma HLS pipeline II=1 style=flp
         if ( y == 0) {

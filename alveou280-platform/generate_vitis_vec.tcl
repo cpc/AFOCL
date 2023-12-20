@@ -27,7 +27,7 @@ set device_count [lindex $argv 3]
 
 open_project vitis_${input_folder}
 set_top ${input_folder}_ip
-add_files kernels/${input_folder}/src/${input_folder}_ip.cpp
+add_files kernels/${input_folder}/src/${input_folder}_ip.cpp -cflags "-DVEC_WIDTH_BITS=512"
 open_solution "solution1" -flow_target vitis
 set_part {xcu280-fsvh2892-2L-e}
 #set_part {xcvu9p-flgb2104-2-i}

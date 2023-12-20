@@ -3,9 +3,8 @@
 #include "hls_stream.h"
 #include "hls_vector.h"
 
-#define VEC_WIDTH_BITS 512
-#define VEC_WIDTH_BYTES (512 / 8)
-#define VEC_WIDTH (VEC_WIDTH_BYTES / sizeof(unsigned short))
+const int VEC_WIDTH_BYTES = (VEC_WIDTH_BITS / 8);
+const int VEC_WIDTH = (VEC_WIDTH_BYTES / sizeof(unsigned short));
 
 typedef hls::vector< unsigned short, VEC_WIDTH > t_Vec_o;
 typedef hls::vector< signed short, VEC_WIDTH > t_Vec_i;
