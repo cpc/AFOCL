@@ -8,7 +8,8 @@ set_property board_part xilinx.com:au280:part0:1.2 [current_project]
 
 
 set rtl_path "[pwd]/rtl_vecadd"
-add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl /home/topi/wb2axip/rtl]
+set zipcpu_path "[pwd]/wb2axip"
+add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl $zipcpu_path/rtl]
 
 import_files -force
 create_bd_design vec_${input_folder}

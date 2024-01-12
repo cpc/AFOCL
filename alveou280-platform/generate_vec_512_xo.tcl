@@ -26,8 +26,8 @@ puts $input_folder
 #create_project vivado_${input_folder}_xo vivado_${input_folder}_xo -part xcu200-fsgd2104-2-e
 create_project vivado_${input_folder}_xo vivado_${input_folder}_xo -part xcvu9p-flgb2104-2-i
 set rtl_path "[pwd]/rtl_vecadd"
-######## TODO: remove hardcoded path
-add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl /home/leevi/wb2axip/rtl] 
+set zipcpu_path "[pwd]/wb2axip"
+add_files [list $rtl_path/platform $rtl_path/gcu_ic $rtl_path/vhdl ${zipcpu_path}/rtl]
 
 import_files -force
 create_bd_design vec_${input_folder}
