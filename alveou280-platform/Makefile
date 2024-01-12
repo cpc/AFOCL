@@ -9,6 +9,8 @@ VPPLFLAGS := --jobs 4
 
 IP_CACHE_DIR ?= ip_cache
 
+POCL_SOURCE_DIR ?= ${HOME}/pocl
+
 OPENASIP_INSTALL_DIR ?= ${HOME}/local
 
 firmwares = vec_add_32x32.img vec_add_16x64.img vec_mul_32x32.img\
@@ -43,10 +45,10 @@ vec_sobel3x3.img: tta_vecadd.adf firmware_canny.c
 		 -D__CBUILD__=1 -DPOCL_DEVICE_ADDRESS_BITS=32 \
 		 -D__OPENCL_VERSION__=120 \
 		 -DONCHIP_MEM_START=0x4000C000 -DONCHIP_MEM_END=0x40010000 \
-		 -I/home/topi/pocl_wd/os/include/ \
-		 -I/home/topi/pocl_wd/os/lib/kernel/ \
+		 -I${POCL_SOURCE_DIR}/include/ \
+		 -I${POCL_SOURCE_DIR}/lib/kernel/ \
 		 -o3 -v -g -a $($@_adf) -o $($@_tpef) $($@_src) \
-		 /home/topi/pocl_wd/os/lib/kernel/printf_base.c /home/topi/pocl_wd/os/lib/kernel/printf.c
+		 ${POCL_SOURCE_DIR}/lib/kernel/printf_base.c ${POCL_SOURCE_DIR}/lib/kernel/printf.c
 	generatebits -e tta_core -f bin2n -p $($@_tpef) $($@_adf)
 	tcedisasm -n $($@_adf) $($@_tpef)
 
@@ -62,10 +64,10 @@ vec_canny1.img: tta_vecadd.adf firmware_canny1.c
 		 -D__CBUILD__=1 -DPOCL_DEVICE_ADDRESS_BITS=32 \
 		 -D__OPENCL_VERSION__=120 \
 		 -DONCHIP_MEM_START=0x4000C000 -DONCHIP_MEM_END=0x40010000 \
-		 -I/home/topi/pocl_wd/os/include/ \
-		 -I/home/topi/pocl_wd/os/lib/kernel/ \
+		 -I${POCL_SOURCE_DIR}/include/ \
+		 -I${POCL_SOURCE_DIR}/lib/kernel/ \
 		 -o3 -v -g -a $($@_adf) -o $($@_tpef) $($@_src) \
-		 /home/topi/pocl_wd/os/lib/kernel/printf_base.c
+		 ${POCL_SOURCE_DIR}/lib/kernel/printf_base.c
 	generatebits -e tta_core -f bin2n -p $($@_tpef) $($@_adf)
 	tcedisasm -n $($@_adf) $($@_tpef)
 
@@ -85,10 +87,10 @@ vec_canny2.img: tta_vecadd.adf firmware_canny2.c
 		 -D__CBUILD__=1 -DPOCL_DEVICE_ADDRESS_BITS=32 \
 		 -D__OPENCL_VERSION__=120 \
 		 -DONCHIP_MEM_START=0x4000C000 -DONCHIP_MEM_END=0x40040000 \
-		 -I/home/topi/pocl_wd/os/include/ \
-		 -I/home/topi/pocl_wd/os/lib/kernel/ \
+		 -I${POCL_SOURCE_DIR}/include/ \
+		 -I${POCL_SOURCE_DIR}/lib/kernel/ \
 		 -o3 -v -g -a $($@_adf) -o $($@_tpef) $($@_src) \
-		 /home/topi/pocl_wd/os/lib/kernel/printf_base.c
+		 ${POCL_SOURCE_DIR}/lib/kernel/printf_base.c
 	generatebits -e tta_core -f bin2n -p $($@_tpef) $($@_adf)
 	tcedisasm -n $($@_adf) $($@_tpef)
 
@@ -104,10 +106,10 @@ vec_canny3.img: tta_vecadd.adf firmware_canny3.c
 		 -D__CBUILD__=1 -DPOCL_DEVICE_ADDRESS_BITS=32 \
 		 -D__OPENCL_VERSION__=120 \
 		 -DONCHIP_MEM_START=0x4000C000 -DONCHIP_MEM_END=0x40010000 \
-		 -I/home/topi/pocl_wd/os/include/ \
-		 -I/home/topi/pocl_wd/os/lib/kernel/ \
+		 -I${POCL_SOURCE_DIR}/include/ \
+		 -I${POCL_SOURCE_DIR}/lib/kernel/ \
 		 -o3 -v -g -a $($@_adf) -o $($@_tpef) $($@_src) \
-		 /home/topi/pocl_wd/os/lib/kernel/printf_base.c
+		 ${POCL_SOURCE_DIR}/lib/kernel/printf_base.c
 	generatebits -e tta_core -f bin2n -p $($@_tpef) $($@_adf)
 	tcedisasm -n $($@_adf) $($@_tpef)
 
@@ -124,10 +126,10 @@ vec_canny4.img: tta_vecadd.adf firmware_canny4.c
 		 -D__CBUILD__=1 -DPOCL_DEVICE_ADDRESS_BITS=32 \
 		 -D__OPENCL_VERSION__=120 \
 		 -DONCHIP_MEM_START=0x4000C000 -DONCHIP_MEM_END=0x40010000 \
-		 -I/home/topi/pocl_wd/os/include/ \
-		 -I/home/topi/pocl_wd/os/lib/kernel/ \
+		 -I${POCL_SOURCE_DIR}/include/ \
+		 -I${POCL_SOURCE_DIR}/lib/kernel/ \
 		 -o3 -v -g -a $($@_adf) -o $($@_tpef) $($@_src) \
-		 /home/topi/pocl_wd/os/lib/kernel/printf_base.c
+		 ${POCL_SOURCE_DIR}/lib/kernel/printf_base.c
 	generatebits -e tta_core -f bin2n -p $($@_tpef) $($@_adf)
 	tcedisasm -n $($@_adf) $($@_tpef)
 
