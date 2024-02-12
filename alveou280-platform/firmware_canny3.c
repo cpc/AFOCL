@@ -1,6 +1,6 @@
 /* firmware.c - Example firmware for tta device implementing AlmaIF.
 
-   Copyright (c) 2023 Topi Leppänen / Tampere University
+   Copyright (c) 2022 Topi Leppänen / Tampere University
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,8 @@
    */
 
 
-#include <stdint.h>
+//#include <stdint.h>
+#include <stdarg.h>
 
 #ifndef QUEUE_LENGTH
 #define QUEUE_LENGTH 3
@@ -54,6 +55,12 @@
 #define __cq__ __attribute__ ((address_space (5)))
 #define __buffer__ __attribute__ ((address_space (1)))
 
+#include "printf_base.h"
+
+
+#define PRINTF_BUFFER_AS __attribute__((address_space(1)))
+
+
 #define MM2S_PTR_OFFSET (0x8/4)
 #define MM2S_LEN_OFFSET (0x18/4)
 #define S2MM_PTR_OFFSET (0x10/4)
@@ -83,7 +90,12 @@ enum BuiltinKernelId : uint16_t
     POCL_CDBI_STREAMOUT_I32 = 16,
     POCL_CDBI_STREAMIN_I32 = 17,
     POCL_CDBI_OPENVX_MINMAXLOC_R1_U8 = 24,
-    POCL_CDBI_LAST = 25,
+    POCL_CDBI_SOBEL3X3_U8 = 25,
+    POCL_CDBI_PHASE_U8 = 26,
+    POCL_CDBI_MAGNITUDE_U16 = 27,
+    POCL_CDBI_ORIENTED_NONMAX_U16 = 28,
+    POCL_CDBI_25_26_27_28 = 29,
+    POCL_CDBI_LAST,
     POCL_CDBI_JIT_COMPILER = 0xFFFF
 };
 
@@ -123,6 +135,9 @@ struct CommandMetadata
     uint32_t finish_timestamp_h;
     uint32_t reserved1;
     uint32_t reserved2;
+    uint32_t pipe_completed_address;
+    uint32_t pipe_consumer_stalls_address;
+    uint32_t pipe_producer_stalls_address;
 };
 
 struct AQLDispatchPacket
@@ -169,6 +184,13 @@ struct AQLAndPacket
     uint32_t completion_signal_high;
 };
 
+#define PIPE_COMPLETED_LO (0)
+#define PIPE_COMPLETED_HI (1)
+#define PIPE_CONSUMER_STALL_LO (2)
+#define PIPE_CONSUMER_STALL_HI (3)
+#define PIPE_PRODUCER_STALL_LO (4)
+#define PIPE_PRODUCER_STALL_HI (5)
+
 int
 main ()
 {
@@ -176,37 +198,24 @@ main ()
         = (__cq__ volatile struct AQLQueueInfo *)QUEUE_START;
     int read_iter = queue_info->read_index_low;
 
-
-    uint32_t dma0_address = 0x41E00000;
-    uint32_t dma1_address = 0x41E10000;
-    uint32_t dma2_address = 0x41E20000;
+    uint32_t dma0_address = 0x81E00000;
+    uint32_t dma1_address = 0x81E10000;
+    uint32_t sobel_address = 0x81E70000;
+    uint32_t nonmax_address = 0x81EA0000;
+    uint32_t pipe_profiler_address = 0x81E21000;
     int dma_ptr_offset = 6;
     int dma_len_offset = 10;
 
-    __buffer__ volatile uint32_t* DMA0 = (__buffer__ volatile uint32_t*)dma0_address;
-    __buffer__ volatile uint32_t* DMA1 = (__buffer__ volatile uint32_t*)dma1_address;
-    __buffer__ volatile uint32_t* DMA2 = (__buffer__ volatile uint32_t*)dma2_address;
+    __buffer__ volatile uint32_t* DMA_SOBEL_IN = (__buffer__ volatile uint32_t*)dma0_address;
+    __buffer__ volatile uint32_t* DMA_NONMAX_OUT = (__buffer__ volatile uint32_t*)(dma1_address);
+    __buffer__ volatile uint32_t* SOBEL = (__buffer__ volatile uint32_t*)(sobel_address);
+    __buffer__ volatile uint32_t* NONMAX = (__buffer__ volatile uint32_t*)(nonmax_address);
     
-    DMA2[0] = (1 << 28);
-    
-    int need_to_reset = 0;
+    DMA_NONMAX_OUT[0] = (1 << 28);
 
     queue_info->base_address_high = 42;
-    //queue_info->reserved2 = 0;
     while (1)
     {
-        if (need_to_reset) {
-            // Soft reset the DMA engines
-            // DMA2 gets resetted automatically together with DMA0 (MM2S and S2MM-pair)
-            DMA0[0] = 0x4;
-            DMA1[0] = 0x4;
-            // Wait while reset in progress
-            while ((DMA0[0] & 0x4) == 1);
-            while ((DMA1[0] & 0x4) == 1);
-            need_to_reset = 0;
-        }
-
-
         // Compute packet location
         uint32_t packet_loc = QUEUE_START + AQL_PACKET_LENGTH
             + ((read_iter % QUEUE_LENGTH) * AQL_PACKET_LENGTH);
@@ -216,12 +225,7 @@ main ()
         // compute it
         //
         queue_info->doorbell_signal_low = 47;
-        while (packet->header == AQL_PACKET_INVALID)
-        {
-            /*        *((__cq__ int*)0 ) = packet_loc;
-             *((__cq__ int*)4 ) = read_iter + 5;
-             *((__cq__ uint16_t*)8 ) = packet->header;
-             */  };
+        while (packet->header == AQL_PACKET_INVALID);
         uint16_t header = packet->header;
         queue_info->type = header;
         if (header & (1 << AQL_PACKET_BARRIER_AND))
@@ -250,82 +254,105 @@ main ()
         }
         else if (header & (1 << AQL_PACKET_KERNEL_DISPATCH))
         {
+            queue_info->base_address_high = 35;
 
-            queue_info->base_address_low = 37;
+            char *printf_buffer;
+            uint32_t *printf_buffer_position;
+            uint32_t printf_buffer_capacity;
+
+            __buffer__ volatile struct CommandMetadata *cmd_meta
+            = (__buffer__ volatile struct CommandMetadata *)packet->completion_signal_low;
+            queue_info->doorbell_signal_high = packet->completion_signal_low;
+            printf_buffer = (char *)(cmd_meta->reserved0);
+            printf_buffer_capacity = cmd_meta->reserved1;
+            printf_buffer_position = (uint32_t*)(cmd_meta->reserved2);
+            queue_info->type = cmd_meta->reserved0;
+            queue_info->features = cmd_meta->reserved1;
+            queue_info->base_address_low = cmd_meta->reserved2;
+            param_t p = { 0 };
+
+            p.printf_buffer = (PRINTF_BUFFER_AS char *)printf_buffer;
+            p.printf_buffer_capacity = printf_buffer_capacity;
+            p.printf_buffer_index
+                = *(PRINTF_BUFFER_AS uint32_t *)printf_buffer_position;
+
+            __pocl_printf_puts(&p, "test\n");
+
+            *(PRINTF_BUFFER_AS uint32_t *)printf_buffer_position
+                = p.printf_buffer_index;
+
+            queue_info->base_address_high = 37;
+            queue_info->doorbell_signal_low = p.printf_buffer_index;
             uint32_t kernel_id = packet->kernel_object_low;
 
             __buffer__ uint32_t *kernarg_ptr
                 = (__buffer__ uint32_t *)(packet->kernarg_address_low);
 
-            uint32_t input0 = kernarg_ptr[0];
-            uint32_t input1 = kernarg_ptr[1];
-            uint32_t output0 = kernarg_ptr[2];
-            queue_info->type = input0;
+            uint32_t arg0 = kernarg_ptr[0];
+            uint32_t arg1 = kernarg_ptr[1];
+            uint32_t arg2 = kernarg_ptr[2];
+            uint32_t arg3 = kernarg_ptr[3];
+            uint32_t arg4 = kernarg_ptr[4];
 
             uint32_t dim_x = packet->grid_size_x;
+            uint32_t dim_y = packet->grid_size_y;
 
-            queue_info->base_address_low = (uint32_t)(&(DMA0[1]));
-
-            queue_info->features = dim_x;
-            queue_info->type = 108;
-            if (0 == 1)
+            if (0 ||
+                    (arg0 >= ONCHIP_MEM_START && arg0 < ONCHIP_MEM_END)
+               )
             {
-                queue_info->features = input0;
-                queue_info->base_address_low = input1;
-                queue_info->base_address_high = output0;
-
-                if (kernel_id == POCL_CDBI_ADD_I32) {
-                    __buffer__ uint32_t* in0  = (__buffer__ uint32_t*)input0;
-                    __buffer__ uint32_t* in1  = (__buffer__ uint32_t*)input1;
-                    __buffer__ uint32_t* out0 = (__buffer__ uint32_t*)output0;
-                    for (int x = 0; x < dim_x; x++) {
-                        out0[x] = in0[x] + in1[x];
-                    }
-
-                } else if (kernel_id == POCL_CDBI_ADD_I16) {
-                    __buffer__ uint16_t* in0  = (__buffer__ uint16_t*)input0;
-                    __buffer__ uint16_t* in1  = (__buffer__ uint16_t*)input1;
-                    __buffer__ uint16_t* out0 = (__buffer__ uint16_t*)output0;
-                    for (int x = 0; x < dim_x; x++) {
-                        out0[x] = in0[x] + in1[x];
-                    }
-                } else if (kernel_id == POCL_CDBI_MUL_I32) {
-                    __buffer__ uint32_t* in0  = (__buffer__ uint32_t*)input0;
-                    __buffer__ uint32_t* in1  = (__buffer__ uint32_t*)input1;
-                    __buffer__ uint32_t* out0 = (__buffer__ uint32_t*)output0;
-                    for (int x = 0; x < dim_x; x++) {
-                        out0[x] = in0[x] * in1[x];
-                    }
+                if (kernel_id == POCL_CDBI_SOBEL3X3_U8) {
+                    //TODO
                 }
 
             } else {
-                queue_info->type = 110;
-                
-                //Physical starting addresses of the buffers
-                DMA0[MM2S_PTR_OFFSET] = input0;
-                DMA1[MM2S_PTR_OFFSET] = input1;
-                DMA2[S2MM_PTR_OFFSET] = output0;
-                //Num of bytes to transfer (triggers the dma to actually start transferring)
-                uint32_t pixel_count = 0;
-                if (kernel_id == POCL_CDBI_ADD_I32 || kernel_id == POCL_CDBI_MUL_I32) {
-                    pixel_count = dim_x * 4;
-                } else if (kernel_id == POCL_CDBI_ADD_I16) {
-                    pixel_count = dim_x * 2;
-                } else {
-                    continue;
-                }
+                switch (kernel_id) {
+                    case POCL_CDBI_25_26_27_28:
+                        {
+                            DMA_SOBEL_IN[MM2S_PTR_OFFSET] = arg0;
+                            uint32_t pixel_count = dim_x * dim_y;
+                            DMA_SOBEL_IN[MM2S_LEN_OFFSET] = pixel_count;
+                            DMA_SOBEL_IN[0] = ((1 << 31) | (1 << 28));
+                            // Launch the accelerator
+                            SOBEL[4] = dim_x;
+                            SOBEL[6] = dim_y;
+                            SOBEL[0] = 1;
 
-                DMA0[MM2S_LEN_OFFSET] = pixel_count;
-                DMA1[MM2S_LEN_OFFSET] = pixel_count;
-                DMA0[0] = ((1 << 31) | (1 << 28));
-                DMA1[0] = ((1 << 31) | (1 << 28));
-                DMA2[S2MM_LEN_OFFSET] = pixel_count;
-                DMA2[0] = ((1 << 31) | (1 << 28));
-               
-                uint32_t status = 0;
-                while (status == 0) {
-                    status = DMA2[0] & (1 << 29); 
-
+                            uint16_t threshold_lower = (uint16_t)arg2;
+                            uint16_t threshold_upper = (uint16_t)arg3;
+                            NONMAX[4] = threshold_lower;
+                            NONMAX[6] = threshold_upper;
+                            NONMAX[8] = dim_x;
+                            NONMAX[10] = dim_y;
+                            // Launch the accelerator
+                            NONMAX[0] = 1;
+                            // Start writing the output back to mem
+                            DMA_NONMAX_OUT[S2MM_PTR_OFFSET] = arg1;
+                            DMA_NONMAX_OUT[S2MM_LEN_OFFSET] = pixel_count;
+                            DMA_NONMAX_OUT[0] = ((1 << 31) | (1 << 28));
+                            uint32_t status3 = 0;
+                            while ( status3 == 0 ) {
+                                status3 = DMA_NONMAX_OUT[0] & (1 << 29);
+                            }
+                            // Read the profilers
+                            __buffer__ volatile uint32_t* complete_counts =
+                                (__buffer__ volatile uint32_t*)(cmd_meta->pipe_completed_address);
+                            __buffer__ volatile uint32_t* producer_stalls =
+                                (__buffer__ __volatile uint32_t*)(cmd_meta->pipe_producer_stalls_address);
+                            __buffer__ volatile uint32_t* consumer_stalls =
+                                (__buffer__ volatile uint32_t*)(cmd_meta->pipe_consumer_stalls_address);
+                            for (int k = 0; k < 8; k++) {
+                                __buffer__ volatile uint32_t* PROFILER =
+                                    (__buffer__ volatile uint32_t*)(pipe_profiler_address + k * 0x1000);
+                                complete_counts[2*k] = PROFILER[PIPE_COMPLETED_LO];
+                                complete_counts[2*k+1] = PROFILER[PIPE_COMPLETED_HI];
+                                consumer_stalls[2*k] = PROFILER[PIPE_CONSUMER_STALL_LO];
+                                consumer_stalls[2*k+1] = PROFILER[PIPE_CONSUMER_STALL_HI];
+                                producer_stalls[2*k] = PROFILER[PIPE_PRODUCER_STALL_LO];
+                                producer_stalls[2*k+1] = PROFILER[PIPE_PRODUCER_STALL_HI];
+                            }
+                        }
+                        break;
                 }
             }
         }
