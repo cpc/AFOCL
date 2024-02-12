@@ -1,5 +1,4 @@
-/* COMP.CE.350 Parallelization Excercise 2023
-   Copyright (c) 2023 Topi Leppanen topi.leppanen@tuni.fi
+/*   Copyright (c) 2023 Topi Leppanen topi.leppanen@tuni.fi
                       Jan Solanti
 
 VERSION 23.0 - Created

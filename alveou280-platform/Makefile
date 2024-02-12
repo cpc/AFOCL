@@ -15,7 +15,7 @@ OPENASIP_INSTALL_DIR ?= ${HOME}/local
 
 firmwares = vec_add_32x32.img vec_add_16x64.img vec_mul_32x32.img\
 			vec_add_32x32_sim.img vec_add_16x64_sim.img vec_mul_32x32_sim.img\
-			vec_canny1_sim.img vec_canny2_sim.img vec_canny3_sim.img
+			vec_canny1_sim.img vec_canny4_sim.img vec_canny3_sim.img
 
 
 rtl_vecadd: tta_vecadd.adf
@@ -28,9 +28,9 @@ rtl_vecadd: tta_vecadd.adf
 	generatebits -x $@ -e tta_core $($@_adf)
 
 sim_bitstreams: vec_add_32x32_sim.xclbin vec_add_16x64_sim.xclbin vec_mul_32x32_sim.xclbin\
-	vec_canny1_sim.xclbin vec_canny2_sim.xclbin vec_canny3_sim.xclbin
+	vec_canny1_sim.xclbin vec_canny4_sim.xclbin vec_canny3_sim.xclbin
 
-canny_bitstreams: vec_canny1.xclbin vec_canny2.xclbin vec_canny3.xclbin
+canny_bitstreams: vec_canny1.xclbin vec_canny4.xclbin vec_canny3.xclbin
 
 vec_sobel3x3_sim.img: vec_sobel3x3.img
 	cp $< $@

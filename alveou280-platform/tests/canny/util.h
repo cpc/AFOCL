@@ -1,4 +1,4 @@
-/* COMP.CE.350 Parallelization Exercise util functions
+/* util functions
    Copyright (c) 2023 Topi Leppanen topi.leppanen@tuni.fi
 */
 
