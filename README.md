@@ -1,22 +1,17 @@
 Scripts to generate the bistream database AFOCL.
 Meant to be used with PoCL's AlmaIF driver.
 
-Tested with Vivado tool versions 2022.1 and Quartus 19.1
-and Alveo U280 and Arria 10 GX FPGA Development Kit, respectively
+Tested with Vivado tool versions 2022.1 and Alveo U280
 
 Build Instructions
 ------------------
-To build the database for both Arria 10 and Alveo U280.
+To build the database for both Alveo U280.
 
 First you should initialize the FPGA tools so that they are
 found from the path:
 ```
 source {XILINX INSTALL DIR}/Vivado/2022.1/settings.sh
-source {Intel FPGA SDK DIR}/19.1/hld/init\_opencl.sh
-{Intel FPGA SDK DIR}/19.1/nios2eds/nios2_command_shell.sh
 ```
-
-TODO: EXPLAIN ARRIA 10 golden platform
 
 If OpenASIP is not installed in ${HOME}/local, you need
 to set it with variable OPENASIP\_INSTALL\_DIR. This is
@@ -28,17 +23,6 @@ Then you can run:
 
 ```
 make
-```
-
-To build for just either one, use either
-
-```
-make db/overlay_arria10
-```
-or
-
-```
-make db/overlay_alveou280
 ```
 
 Usage
