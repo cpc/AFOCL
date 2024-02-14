@@ -1,3 +1,3 @@
 [submodule "alveou280-platform/wb2axip"]
 	path = alveou280-platform/wb2axip
-	url = git@github.com:TopiLeppanen/wb2axip.git
+	url = https://github.com/TopiLeppanen/wb2axip.git
