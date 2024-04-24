@@ -157,6 +157,7 @@ vec_mul_32x32_sim.img: vec_add_32x32.img
 
 firmware: $(firmwares)
 
+.PRECIOUS: vec_hls_%.zip
 vec_hls_%.zip: kernels/%/src/*_ip.cpp kernels/%/src/*_ip.h generate_vitis_vec.tcl
 	rm -rf vitis_$*
 	rm -f vec_hls_$*.zip
@@ -409,7 +410,10 @@ vec_canny4_sim.xclbin: vec_canny4.xo
 		--user_ip_repo_paths vitis_phase_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_magnitude_ctrl/solution1/impl/ \
 		--user_ip_repo_paths vitis_nonmax_ctrl/solution1/impl/ \
-		--user_ip_repo_paths ip_repo_canny4 --kernel_frequency 400 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny4 --connectivity.sp vec_canny4_sim_1.m_axi:HBM[0]
+		--user_ip_repo_paths ip_repo_canny4 \
+		--kernel_frequency 400 -o $@ $($@_xo) --remote_ip_cache ${IP_CACHE_DIR}_canny4 \
+		--connectivity.sp vec_canny4_sim_1.m_axi_0:HBM[0:7] \
+		--connectivity.sp vec_canny4_sim_1.m_axi_1:HBM[0:7]
 	xclbinutil --dump-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny4_sim.xml --input $@ --force
 	python3 set_xclbin_range.py embeddedMetadata_canny4_sim.xml
 	xclbinutil --replace-section EMBEDDED_METADATA:RAW:embeddedMetadata_canny4_sim.xml --input $@ --output tmp_canny4_sim.xclbin

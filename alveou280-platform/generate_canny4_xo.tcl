@@ -32,7 +32,7 @@ set_property -dict [list CONFIG.C_AXI_ADDR_WIDTH {40} CONFIG.C_AXI_DATA_WIDTH {5
 for {set i 0} {$i < 1} {incr i} {
     create_bd_cell -type module -reference tta_core_toplevel tta_core_toplevel_$i
     set device_offset [expr $i * 65536 + 1073741824]
-    set_property -dict [list CONFIG.local_mem_addrw_g {12} CONFIG.axi_offset_low_g ${device_offset}] [get_bd_cells tta_core_toplevel_$i]
+    set_property -dict [list CONFIG.local_mem_addrw_g {12} CONFIG.axi_addr_width_g {16} CONFIG.axi_offset_low_g ${device_offset}] [get_bd_cells tta_core_toplevel_$i]
 }
 
 make_bd_pins_external  [get_bd_pins tta_core_toplevel_0/clk]
